@@ -282,6 +282,61 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
 
 .anim { animation:fadeup .2s ease both; }
 @keyframes fadeup { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── OVERLAYS / V2 ── */
+.hidden { display:none !important; }
+.badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 10px; font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+.badge.low { background:var(--l-bg); color:var(--l-text); border:1px solid var(--l-border); }
+.badge.med { background:var(--f-bg); color:var(--f-text); border:1px solid var(--f-border); }
+.badge.high { background:var(--done-bg); color:var(--done); border:1px solid var(--done-border); }
+.card-lite { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px; box-shadow:var(--shadow); margin-bottom:12px; }
+.card-lite h3 { font-size:14px; margin-bottom:6px; }
+.card-lite p { font-size:12px; line-height:1.6; color:var(--muted); }
+.setup-overlay, .sheet-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:400;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.setup-overlay.open, .sheet-overlay.open { display:flex; }
+.setup-sheet, .sheet-card {
+  width:100%; max-width:520px; background:var(--paper); border-radius:24px 24px 0 0;
+  padding:22px 20px 34px; max-height:92vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.18);
+}
+.setup-top { margin-bottom:16px; }
+.setup-kicker { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:600; margin-bottom:6px; }
+.setup-title { font-family:'DM Serif Display',serif; font-size:28px; line-height:1.05; margin-bottom:8px; }
+.setup-body { font-size:13px; color:var(--muted); line-height:1.6; }
+.setup-grid { display:grid; gap:12px; margin-top:16px; }
+.setup-actions { display:flex; gap:8px; margin-top:18px; }
+.btn {
+  border:none; border-radius:12px; padding:13px 14px; font:inherit; cursor:pointer;
+}
+.btn.primary { background:var(--ink); color:white; flex:1; }
+.btn.secondary { background:transparent; color:var(--muted); border:1.5px solid var(--border); }
+.opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.opt { border:1.5px solid var(--border); background:var(--surface); padding:12px 10px; border-radius:12px; cursor:pointer; text-align:left; }
+.opt.sel { border-color:var(--ink); background:var(--ground); }
+.opt strong { display:block; font-size:12px; margin-bottom:4px; }
+.opt span { display:block; font-size:11px; color:var(--muted); line-height:1.45; }
+.inline-note { font-size:11px; color:var(--muted); line-height:1.55; margin-top:6px; }
+.setup-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.setup-input-wrap label { display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:var(--muted); letter-spacing:.06em; margin-bottom:5px; }
+.setup-input, .setup-select {
+  width:100%; border:1.5px solid var(--border); border-radius:12px; padding:12px; font:inherit; background:var(--surface);
+}
+.readiness-pills { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+.rpill { border:1.5px solid var(--border); background:var(--surface); border-radius:12px; padding:12px 10px; cursor:pointer; text-align:center; }
+.rpill.sel { border-color:var(--ink); background:var(--ground); }
+.rpill strong { display:block; font-size:12px; }
+.rpill span { display:block; font-size:10px; color:var(--muted); margin-top:3px; }
+.small-help { font-size:11px; color:var(--muted); line-height:1.55; margin-top:8px; }
+#today-card-title { font-size:20px; font-family:'DM Serif Display',serif; margin-bottom:6px; }
+#today-card-body { font-size:12px; color:var(--muted); line-height:1.6; }
+.summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+.summary-row .cmeta { background:var(--ground); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center; }
+@media(max-width:520px){
+  .opt-grid,.readiness-pills,.setup-row,.summary-row{grid-template-columns:1fr;}
+}
+
 </style>
 </head>
 <body>
@@ -326,6 +381,7 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
     <div id="v-schedule" class="view active">
       <div class="vinner">
         <div class="abanner" id="abanner"></div>
+        <div class="card-lite" id="today-card"><div id="today-card-title">Today’s plan</div><div id="today-card-body">Loading...</div><div class="summary-row" id="today-summary"></div></div>
         <div class="wkhdr">
           <div class="wkhdr-top">
             <div class="wkhdr-title" id="wk-title"></div>
@@ -454,6 +510,30 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
   <button class="tbtn" data-tab="tips" onclick="switchTab(this)"><span class="tbtn-icon">💡</span><span class="tbtn-lbl">Tips</span></button>
 </div>
 
+
+<!-- V2 ONBOARDING -->
+<div id="setup-overlay" class="setup-overlay">
+  <div class="setup-sheet">
+    <div id="setup-screen"></div>
+  </div>
+</div>
+
+<!-- DAILY READINESS -->
+<div id="readiness-overlay" class="sheet-overlay" onclick="if(event.target===this)closeReadiness(false)">
+  <div class="sheet-card">
+    <div class="setup-kicker">Daily check-in</div>
+    <div class="setup-title" style="font-size:24px">How are you feeling today?</div>
+    <div class="setup-body">This adjusts today’s recommendation. One rough day should bend the plan, not break it.</div>
+    <div class="readiness-pills" id="readiness-pills"></div>
+    <div class="small-help">Asked once per day only. Sick means full rest is recommended.</div>
+    <div class="setup-actions">
+      <button class="btn secondary" onclick="closeReadiness(false)">Skip</button>
+      <button class="btn primary" onclick="saveReadiness()">Save today’s vibe</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- LOG MODAL -->
 <div id="modal-bg" onclick="if(event.target===this)closeModal()">
   <div id="modal">
@@ -504,288 +584,576 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
   </div>
 </div>
 
+
 <script>
-// ═══════════════════════════════════════════════════════
-//  CONSTANTS
-// ═══════════════════════════════════════════════════════
-const STORAGE_KEY = 'herwalk_v1';
-const START_DATE  = new Date(2026, 3, 5);   // Apr 5 2026 — program start
-const EST_PERIOD  = new Date(2026, 3, 2);   // Apr 2 2026 — estimated first period
+const LEGACY_KEY = 'herwalk_v1';
+const STORAGE_KEY = 'herwalk_v2';
+const START_DATE  = new Date(2026, 3, 5);
+const EST_PERIOD  = new Date(2026, 3, 2);
 const MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-const WEEK_TITLES = [
-  'Week 1 — Gentle Start',    'Week 2 — Energy Rising',    'Week 3 — Steady Pace',
-  'Week 4 — Period Returns',  'Week 5 — Second Wind',      'Week 6 — Peak Phase',
-  'Week 7 — Holding Strong',  'Week 8 — Period Round 3',   'Week 9 — Full Power',
-  'Week 10 — Habit Locked',   'Week 11 — Cruising',        'Week 12 — Graduation 🎉'
-];
-
-// ═══════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════
-// logs: { "YYYY-MM-DD": { status:"done"|"rest"|"sick", actualMins, actualKm, isPeriod } }
-// adaptOffset: number (minutes added/subtracted from future sessions)
-let S = { logs: {}, adaptOffset: 0 };
 let curWeek = 0;
 let weekManual = false;
 let modalKey = null;
 let modalStatus = null;
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
+let selectedReadiness = null;
+let activeSetupStep = 0;
 
-// ═══════════════════════════════════════════════════════
-//  STORAGE
-// ═══════════════════════════════════════════════════════
-function loadState() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { logs:{}, adaptOffset:0 }; }
-  catch(e) { return { logs:{}, adaptOffset:0 }; }
-}
-function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+const DEFAULT_STATE = {
+  version: 2,
+  profile: null,
+  logs: {},
+  weeklyAdapt: {},
+  dailyState: {},
+  meta: { migratedFromV1:false, lastOpened:null, legacyBackup:null }
+};
 
-// ═══════════════════════════════════════════════════════
-//  DATE HELPERS
-// ═══════════════════════════════════════════════════════
+let S = structuredClone(DEFAULT_STATE);
+
+function deepClone(v){ return JSON.parse(JSON.stringify(v)); }
 function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function dk(d)   { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function pd(k)   { const [y,m,d] = k.split('-').map(Number); const dt = new Date(y,m-1,d); dt.setHours(0,0,0,0); return dt; }
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+function weekStart(d){ const t = new Date(d); t.setHours(0,0,0,0); const day = t.getDay(); t.setDate(t.getDate()-day); return t; }
+function fmtDate(d){ return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
+function daysBetween(a,b){ return Math.round((weekStart(b)-weekStart(a))/86400000); }
+function getWeekIndex(date){ return Math.max(0, Math.floor((weekStart(date) - weekStart(START_DATE))/86400000/7)); }
+function weekKey(w){ return `w${w}`; }
 
-// ═══════════════════════════════════════════════════════
-//  CYCLE ENGINE
-// ═══════════════════════════════════════════════════════
-function getPeriodDays() {
-  return Object.entries(S.logs)
-    .filter(([,v]) => v.isPeriod)
-    .map(([k]) => pd(k))
-    .sort((a,b) => a - b);
+function loadState() {
+  try {
+    const v2 = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (v2 && typeof v2 === 'object') {
+      return {
+        ...deepClone(DEFAULT_STATE),
+        ...v2,
+        logs: v2.logs || {},
+        weeklyAdapt: v2.weeklyAdapt || {},
+        dailyState: v2.dailyState || {},
+        meta: { ...DEFAULT_STATE.meta, ...(v2.meta||{}) }
+      };
+    }
+  } catch(e) {}
+  try {
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY));
+    if (legacy && typeof legacy === 'object') {
+      const migrated = deepClone(DEFAULT_STATE);
+      migrated.logs = legacy.logs || {};
+      migrated.meta.migratedFromV1 = true;
+      migrated.meta.legacyBackup = legacy;
+      const legacyOffset = typeof legacy.adaptOffset === 'number' ? legacy.adaptOffset : 0;
+      migrated.weeklyAdapt[weekKey(Math.max(0, getWeekIndex(today())))] = { offset: legacyOffset, reason: 'Migrated from v1 baseline', stamp: dk(today()) };
+      return migrated;
+    }
+  } catch(e) {}
+  return deepClone(DEFAULT_STATE);
 }
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
 
-function getCycleStarts() {
-  const pdays = getPeriodDays();
-  if (!pdays.length) return [EST_PERIOD];
-  const starts = [pdays[0]];
-  for (let i = 1; i < pdays.length; i++) {
-    if ((pdays[i] - pdays[i-1]) / 86400000 > 5) starts.push(pdays[i]);
+const setupDraft = {
+  name: '',
+  level: 'easy',
+  cycleAware: true,
+  cycleLength: 28,
+  periodLength: 5,
+  restPref: 'midweek',
+  startDate: dk(today())
+};
+
+const SETUP_SCREENS = [
+  {
+    title:'Her Walk, but smarter',
+    body:'A softer walking coach that adapts to energy, real logs, and period timing without acting like it knows the future from two checkboxes.',
+    html:`<div class="setup-grid">
+      <div class="card-lite"><h3>What changes in v2</h3><p>Safer saved data, better cycle estimates, once-a-day readiness check, and weekly adaptation instead of random render-time voodoo.</p></div>
+    </div>`
+  },
+  {
+    title:'Who’s walking?',
+    body:'Tiny setup so the plan actually fits the human using it.',
+    html:`<div class="setup-grid">
+      <div class="setup-input-wrap"><label>Name or nickname</label><input id="setup-name" class="setup-input" placeholder="Her nickname"></div>
+      <div class="setup-input-wrap"><label>Walking level</label>
+        <div class="opt-grid" id="level-grid">
+          <button class="opt" data-v="easy" onclick="pickOption('level',this)"><strong>Gentle start</strong><span>Best if she is rebuilding consistency.</span></button>
+          <button class="opt" data-v="steady" onclick="pickOption('level',this)"><strong>Already steady</strong><span>For someone who walks semi-regularly.</span></button>
+        </div>
+      </div>
+    </div>`
+  },
+  {
+    title:'Cycle-aware or standard mode?',
+    body:'Cycle-aware gives softer predictions. Standard mode skips the phase logic and still works fine.',
+    html:`<div class="setup-grid">
+      <div class="opt-grid" id="cycleaware-grid">
+        <button class="opt" data-v="true" onclick="pickOption('cycleAware',this)"><strong>Cycle-aware</strong><span>Uses period logs and estimates future phases.</span></button>
+        <button class="opt" data-v="false" onclick="pickOption('cycleAware',this)"><strong>Standard</strong><span>No cycle logic. Just readiness + walking history.</span></button>
+      </div>
+      <div id="cycle-inputs">
+        <div class="setup-row">
+          <div class="setup-input-wrap"><label>Usual cycle length</label><input id="setup-cycleLength" class="setup-input" type="number" min="21" max="40" value="28"></div>
+          <div class="setup-input-wrap"><label>Usual period length</label><input id="setup-periodLength" class="setup-input" type="number" min="2" max="10" value="5"></div>
+        </div>
+        <div class="inline-note">This is just a starting guess. Logged period days will slowly override it.</div>
+      </div>
+    </div>`
+  },
+  {
+    title:'Recovery style',
+    body:'Pick the weekly flow that feels least annoying to follow.',
+    html:`<div class="setup-grid">
+      <div class="opt-grid" id="restpref-grid">
+        <button class="opt" data-v="midweek" onclick="pickOption('restPref',this)"><strong>Midweek reset</strong><span>Rest on Tuesday and Friday.</span></button>
+        <button class="opt" data-v="weekend" onclick="pickOption('restPref',this)"><strong>Weekend bias</strong><span>Rest on Wednesday and Saturday.</span></button>
+      </div>
+      <div class="setup-input-wrap"><label>Plan start date</label><input id="setup-startDate" class="setup-input" type="date"></div>
+    </div>`
   }
-  return starts;
+];
+
+function openSetup(step=0){
+  activeSetupStep = step;
+  document.getElementById('setup-overlay').classList.add('open');
+  renderSetup();
+}
+function closeSetup(){ document.getElementById('setup-overlay').classList.remove('open'); }
+
+function renderSetup(){
+  const screen = SETUP_SCREENS[activeSetupStep];
+  let actions = '';
+  if (activeSetupStep > 0) actions += `<button class="btn secondary" onclick="setupBack()">Back</button>`;
+  actions += activeSetupStep === SETUP_SCREENS.length-1
+    ? `<button class="btn primary" onclick="finishSetup()">Build my plan</button>`
+    : `<button class="btn primary" onclick="setupNext()">Next</button>`;
+  document.getElementById('setup-screen').innerHTML = `
+    <div class="setup-top">
+      <div class="setup-kicker">Setup ${activeSetupStep+1} / ${SETUP_SCREENS.length}</div>
+      <div class="setup-title">${screen.title}</div>
+      <div class="setup-body">${screen.body}</div>
+    </div>
+    ${screen.html}
+    <div class="setup-actions">${actions}</div>
+  `;
+  hydrateSetup();
+}
+function hydrateSetup(){
+  const n = document.getElementById('setup-name'); if(n) n.value = setupDraft.name || '';
+  const cl = document.getElementById('setup-cycleLength'); if(cl) cl.value = setupDraft.cycleLength;
+  const pl = document.getElementById('setup-periodLength'); if(pl) pl.value = setupDraft.periodLength;
+  const sd = document.getElementById('setup-startDate'); if(sd) sd.value = setupDraft.startDate;
+  syncSel('level', setupDraft.level);
+  syncSel('cycleAware', String(setupDraft.cycleAware));
+  syncSel('restPref', setupDraft.restPref);
+  const ci = document.getElementById('cycle-inputs');
+  if(ci) ci.style.display = setupDraft.cycleAware ? 'block' : 'none';
+}
+function syncSel(key,val){
+  const root = document.getElementById(`${key.toLowerCase()}-grid`) || document.getElementById(`${key}-grid`);
+  if(!root) return;
+  root.querySelectorAll('.opt').forEach(b => b.classList.toggle('sel', b.dataset.v === String(val)));
+}
+function pickOption(key, el){
+  const val = el.dataset.v;
+  setupDraft[key] = (val === 'true') ? true : (val === 'false' ? false : val);
+  syncSel(key, setupDraft[key]);
+  if(key === 'cycleAware'){
+    const ci = document.getElementById('cycle-inputs');
+    if(ci) ci.style.display = setupDraft.cycleAware ? 'block' : 'none';
+  }
+}
+function setupBack(){ activeSetupStep = Math.max(0, activeSetupStep-1); renderSetup(); }
+function setupNext(){
+  pullSetupInputs();
+  activeSetupStep = Math.min(SETUP_SCREENS.length-1, activeSetupStep+1);
+  renderSetup();
+}
+function pullSetupInputs(){
+  const n = document.getElementById('setup-name'); if(n) setupDraft.name = n.value.trim();
+  const cl = document.getElementById('setup-cycleLength'); if(cl) setupDraft.cycleLength = clamp(parseInt(cl.value||28,10),21,40);
+  const pl = document.getElementById('setup-periodLength'); if(pl) setupDraft.periodLength = clamp(parseInt(pl.value||5,10),2,10);
+  const sd = document.getElementById('setup-startDate'); if(sd) setupDraft.startDate = sd.value || dk(today());
+}
+function finishSetup(){
+  pullSetupInputs();
+  S.profile = {
+    name: setupDraft.name || 'Love',
+    level: setupDraft.level,
+    cycleAware: !!setupDraft.cycleAware,
+    cycleLength: setupDraft.cycleLength,
+    periodLength: setupDraft.periodLength,
+    restPref: setupDraft.restPref,
+    startDate: setupDraft.startDate
+  };
+  saveState();
+  closeSetup();
+  maybeAskReadiness(true);
+  renderAll();
 }
 
-function getCycleLen() {
-  const s = getCycleStarts();
-  if (s.length < 2) return 28;
-  const lens = [];
-  for (let i = 1; i < s.length; i++) lens.push(Math.round((s[i] - s[i-1]) / 86400000));
-  return Math.round(lens.reduce((a,b) => a+b, 0) / lens.length);
+function getProfile(){
+  return S.profile || {
+    name:'Love',
+    level:'easy',
+    cycleAware:true,
+    cycleLength:28,
+    periodLength:5,
+    restPref:'midweek',
+    startDate: dk(START_DATE)
+  };
 }
 
-function getPhase(date) {
+function openReadiness(){
+  selectedReadiness = S.dailyState[dk(today())]?.readiness || null;
+  const opts = [
+    ['exhausted','Exhausted','Go gentler today'],
+    ['low','Low energy','Trim the session'],
+    ['okay','Okay','Hold the base plan'],
+    ['good','Good','Solid steady day'],
+    ['great','Great','Best day to push a bit'],
+    ['sick','Sick','Rest is the plan']
+  ];
+  document.getElementById('readiness-pills').innerHTML = opts.map(([k,t,s]) =>
+    `<button class="rpill ${selectedReadiness===k?'sel':''}" data-v="${k}" onclick="pickReadiness(this)"><strong>${t}</strong><span>${s}</span></button>`
+  ).join('');
+  document.getElementById('readiness-overlay').classList.add('open');
+}
+function pickReadiness(el){
+  selectedReadiness = el.dataset.v;
+  document.querySelectorAll('#readiness-pills .rpill').forEach(b => b.classList.toggle('sel', b===el));
+}
+function saveReadiness(){
+  if(!selectedReadiness) return;
+  const key = dk(today());
+  S.dailyState[key] = { ...(S.dailyState[key]||{}), readiness:selectedReadiness, askedAt:new Date().toISOString() };
+  saveState();
+  closeReadiness(true);
+  renderAll();
+}
+function closeReadiness(refresh=true){
+  document.getElementById('readiness-overlay').classList.remove('open');
+  if(refresh) renderAll();
+}
+function maybeAskReadiness(force=false){
+  const key = dk(today());
+  const already = !!S.dailyState[key]?.readiness;
+  if(force || !already) openReadiness();
+}
+
+function getPeriodLogDates(){
+  return Object.entries(S.logs)
+    .filter(([,v]) => v && v.isPeriod)
+    .map(([k]) => pd(k))
+    .sort((a,b)=>a-b);
+}
+function buildPeriodRuns(){
+  const days = getPeriodLogDates();
+  const runs = [];
+  for(const d of days){
+    const last = runs[runs.length-1];
+    if(!last || (d - last[last.length-1]) / 86400000 > 1){
+      runs.push([d]);
+    } else {
+      last.push(d);
+    }
+  }
+  return runs;
+}
+function getCycleStarts(){
+  const runs = buildPeriodRuns().filter(run => run.length >= 1);
+  if(!runs.length) return [EST_PERIOD];
+  const starts = [runs[0][0]];
+  for(let i=1;i<runs.length;i++){
+    const diff = (runs[i][0]-runs[i-1][0])/86400000;
+    if(diff >= 15) starts.push(runs[i][0]);
+  }
+  return starts.length ? starts : [EST_PERIOD];
+}
+function getCycleInfo(){
+  const p = getProfile();
+  if(!p.cycleAware){
+    return { enabled:false, confidence:'low', cycleLength:p.cycleLength, periodLength:p.periodLength, starts:[], runs:[], trackedDays:0 };
+  }
+  const runs = buildPeriodRuns();
   const starts = getCycleStarts();
-  const cl = getCycleLen();
+  const trackedDays = getPeriodLogDates().length;
+  let cycleLength = p.cycleLength || 28;
+  if(starts.length >= 2){
+    const diffs = [];
+    for(let i=1;i<starts.length;i++){
+      const d = Math.round((starts[i]-starts[i-1])/86400000);
+      if(d >= 21 && d <= 40) diffs.push(d);
+    }
+    if(diffs.length) cycleLength = Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
+  }
+  let periodLength = p.periodLength || 5;
+  const runLens = runs.map(r=>r.length).filter(n => n>=2 && n<=10);
+  if(runLens.length) periodLength = Math.round(runLens.reduce((a,b)=>a+b,0)/runLens.length);
+
+  let confidence = 'low';
+  if(starts.length >= 3 && trackedDays >= 8) confidence = 'high';
+  else if(starts.length >= 2 && trackedDays >= 4) confidence = 'med';
+
+  return { enabled:true, confidence, cycleLength, periodLength, starts, runs, trackedDays };
+}
+function getPhase(date){
+  const info = getCycleInfo();
+  if(!info.enabled) return 'f';
+  const starts = info.starts.length ? info.starts : [EST_PERIOD];
   let ref = starts[0];
-  for (const s of starts) { if (s <= date) ref = s; }
-  const cd = (Math.floor((date - ref) / 86400000) % cl) + 1;
-  const pLen = 5, fLen = Math.round((cl - pLen) * 0.3), oLen = 3;
-  if (cd <= pLen)               return 'm';
-  if (cd <= pLen + fLen)        return 'f';
-  if (cd <= pLen + fLen + oLen) return 'o';
+  for(const s of starts){ if(s <= date) ref = s; }
+  const cl = info.cycleLength || 28;
+  const periodLen = clamp(info.periodLength || 5, 2, 10);
+  const dayNum = ((Math.floor((date - ref)/86400000) % cl) + cl) % cl + 1;
+  const ovLen = 3;
+  const lutealLen = clamp(Math.round(cl * 0.43), 10, 16);
+  const ovStart = clamp(cl - lutealLen - Math.floor(ovLen/2), periodLen + 5, cl - lutealLen);
+  if(dayNum <= periodLen) return 'm';
+  if(dayNum < ovStart) return 'f';
+  if(dayNum < ovStart + ovLen) return 'o';
   return 'l';
 }
-
 const PHASE_LABELS = { m:'Period phase', f:'Follicular phase', o:'Ovulation phase', l:'Luteal phase', r:'Rest day' };
 
-// ═══════════════════════════════════════════════════════
-//  SCHEDULE GENERATION
-// ═══════════════════════════════════════════════════════
-function getWeekTarget(w) {
-  if (w === 0) return { min:15, max:25 };
-  if (w === 1) return { min:20, max:35 };
-  if (w === 2) return { min:25, max:35 };
-  if (w === 3) return { min:15, max:35 };
-  if (w <= 5)  return { min:30, max:45 };
-  if (w <= 7)  return { min:35, max:50 };
-  return { min:40, max:50 };
+function getBlockTargets(w){
+  const p = getProfile();
+  const base = p.level === 'steady'
+    ? [22,26,30,34,38,40,42,44,46,48]
+    : [15,18,22,25,28,30,32,34,36,38];
+  const stage = Math.min(w, base.length-1);
+  const baseMid = base[stage];
+  const cyclePhase = w < 4 ? w : (w - 4) % 4;
+  let deltaMin = 0, deltaMax = 6;
+  if(cyclePhase === 0){ deltaMin = -2; deltaMax = 4; }
+  if(cyclePhase === 1){ deltaMin = 0;  deltaMax = 8; }
+  if(cyclePhase === 2){ deltaMin = 2;  deltaMax = 10; }
+  if(cyclePhase === 3){ deltaMin = -4; deltaMax = 2; }
+  const min = clamp(baseMid + deltaMin, 12, 50);
+  const max = clamp(baseMid + deltaMax, min+2, 55);
+  return { min, max };
 }
-
 const NOTES = {
   m: ['Easy pace · period phase','Gentle movement helps cramps','Light and steady','Period day · listen to your body','Easy does it'],
   f: ['Energy rising · push a little','Extend the time today','Building the habit','Follicular surge · ride it','Push the duration'],
-  o: ['Peak energy · go for it!','Ovulation · unstoppable','Best you will feel all cycle','Full effort today'],
+  o: ['Peak energy · go for it!','Ovulation · strong window','Best you will feel all cycle','Full effort today'],
   l: ['Steady and consistent','Moderate pace today','Luteal · still strong','Pre-period · be kind','Winding down'],
   r: ['Recovery · let your body repair','Rest day','Recovery · important today']
 };
-
-function buildWeek(w) {
+function getRestDaysForWeek(){
+  const pref = getProfile().restPref;
+  return pref === 'weekend' ? new Set([3,6]) : new Set([2,5]);
+}
+function getWeekOffset(w){
+  return S.weeklyAdapt[weekKey(w)]?.offset || 0;
+}
+function getWeekReason(w){
+  return S.weeklyAdapt[weekKey(w)]?.reason || '';
+}
+function buildWeek(w){
   const days = [];
-  const ws = new Date(START_DATE);
+  const ws = weekStart(START_DATE);
   ws.setDate(ws.getDate() + w * 7);
-  ws.setHours(0,0,0,0);
-  const tgt = getWeekTarget(w);
-  const restDays = new Set([2, 5]);
-
-  for (let i = 0; i < 7; i++) {
+  const tgt = getBlockTargets(w);
+  const restDays = getRestDaysForWeek();
+  const offset = getWeekOffset(w);
+  for(let i=0;i<7;i++){
     const date = new Date(ws);
     date.setDate(ws.getDate() + i);
+    date.setHours(0,0,0,0);
     const isRest = restDays.has(i);
     let baseMins = 0;
-    if (!isRest) {
-      const t = tgt.min + Math.round((tgt.max - tgt.min) * (i / 6));
-      baseMins = Math.min(50, Math.max(tgt.min, t));
+    if(!isRest){
+      const ramp = tgt.min + Math.round((tgt.max - tgt.min) * (i / 6));
+      baseMins = clamp(ramp + offset, 10, 60);
     }
     const phase = isRest ? 'r' : getPhase(date);
     const noteArr = NOTES[phase] || NOTES.f;
-    days.push({
-      w, date, isRest, baseMins,
-      task: isRest ? 'Rest day' : `${baseMins} min walk`,
-      note: noteArr[i % noteArr.length]
-    });
+    days.push({ w, date, isRest, baseMins, task:isRest ? 'Rest day' : `${baseMins} min walk`, note:noteArr[i % noteArr.length] });
   }
   return days;
 }
-
-function buildSchedule() {
-  const todayDt = today();
-  const diffDays = Math.floor((todayDt - START_DATE) / 86400000);
+function buildSchedule(){
+  const diffDays = Math.floor((today() - weekStart(START_DATE))/86400000);
   const curWk = Math.max(0, Math.floor(diffDays / 7));
-  const totalWeeks = Math.max(curWk + 4, 16);
+  const totalWeeks = Math.max(curWk + 6, 20);
   const weeks = [];
-  for (let w = 0; w < totalWeeks; w++) weeks.push(buildWeek(w));
+  for(let w=0; w<totalWeeks; w++) weeks.push(buildWeek(w));
   return weeks;
 }
 
-// ═══════════════════════════════════════════════════════
-//  ADAPTIVE ENGINE
-// ═══════════════════════════════════════════════════════
-function getEffStatus(day) {
+function getEffStatus(day){
   const log = S.logs[dk(day.date)];
   if (log && log.status) return log.status;
   if (!day.isRest && day.date < today() && !log) return 'miss';
   return null;
 }
+function getReadinessForDate(date){
+  return S.dailyState[dk(date)]?.readiness || null;
+}
+function readinessOffset(readiness){
+  return ({
+    exhausted:-10,
+    low:-5,
+    okay:0,
+    good:0,
+    great:3,
+    sick:-999
+  })[readiness] ?? 0;
+}
+function getRecommendedMins(day){
+  if(day.isRest) return 0;
+  let mins = day.baseMins;
+  const rd = getReadinessForDate(day.date);
+  if(rd === 'sick') return 0;
+  mins = clamp(mins + readinessOffset(rd), 10, 60);
+  return mins;
+}
 
-function computePerfRatio() {
-  const todayDt = today();
-  const sessions = buildSchedule().flat()
-    .filter(d => !d.isRest && d.date < todayDt)
-    .slice(-7);
-  if (sessions.length < 3) return 1;
-  const ratios = sessions.map(d => {
-    const log = S.logs[dk(d.date)];
+function evaluateWeek(w){
+  if(w < 1) return;
+  const key = weekKey(w);
+  if(S.weeklyAdapt[key]) return;
+  const prev = buildWeek(w-1).filter(d => !d.isRest && d.date < today());
+  if(prev.length < 3) return;
+  let done=0, miss=0, sick=0, rest=0, ratioSum=0, ratioN=0;
+  for(const d of prev){
     const es = getEffStatus(d);
-    if (es === 'done' && log && log.actualMins) return log.actualMins / d.baseMins;
-    if (es === 'done') return 1;
-    if (es === 'sick')  return null;
-    return 0;
-  }).filter(r => r !== null);
-  if (!ratios.length) return 1;
-  return ratios.reduce((a,b) => a+b, 0) / ratios.length;
+    const log = S.logs[dk(d.date)];
+    if(es === 'done'){
+      done++;
+      const actual = log?.actualMins || d.baseMins;
+      ratioSum += actual / Math.max(d.baseMins, 1);
+      ratioN++;
+    } else if(es === 'sick') sick++;
+    else if(es === 'rest') rest++;
+    else if(es === 'miss') miss++;
+  }
+  const adherence = done / prev.length;
+  const perf = ratioN ? ratioSum / ratioN : 0;
+  const prevOffset = getWeekOffset(w-1);
+  let offset = prevOffset;
+  let reason = 'Held steady.';
+  if(sick >= 2){
+    offset = Math.max(-10, prevOffset - 5);
+    reason = 'Eased back because health came first last week.';
+  } else if(miss >= 2 || adherence < 0.5){
+    offset = Math.max(-10, prevOffset - 5);
+    reason = 'Reduced a little because last week was harder to complete.';
+  } else if(perf >= 1.1 && adherence >= 0.8 && sick === 0){
+    offset = Math.min(10, prevOffset + 5);
+    reason = 'Leveled up after a strong, consistent week.';
+  }
+  S.weeklyAdapt[key] = { offset, reason, stamp: dk(today()), stats:{ adherence, perf, sick, miss, rest } };
+  saveState();
+}
+function evaluatePendingWeeks(){
+  const current = getWeekIndex(today());
+  for(let w=1; w<=current+1; w++) evaluateWeek(w);
 }
 
-function computeRecentMissed() {
-  const todayDt = today();
-  return buildSchedule().flat()
-    .filter(d => !d.isRest && d.date < todayDt)
-    .slice(-5)
-    .filter(d => ['rest','sick','miss'].includes(getEffStatus(d)))
-    .length;
-}
-
-function computeOffset() {
-  const ratio = computePerfRatio();
-  const missed = computeRecentMissed();
-  const sickTotal = Object.values(S.logs).filter(v => v.status === 'sick').length;
-  if (missed >= 2 || ratio <= 0.75 || sickTotal >= 3) return Math.max(-10, S.adaptOffset - 5);
-  if (ratio >= 1.2 && missed === 0)                   return Math.min(10,  S.adaptOffset + 5);
-  return S.adaptOffset;
-}
-
-function applyOffset(day, offset) {
-  if (day.isRest || day.baseMins < 25) return day.baseMins;
-  return Math.min(60, Math.max(10, day.baseMins + offset));
-}
-
-// ═══════════════════════════════════════════════════════
-//  STATS
-// ═══════════════════════════════════════════════════════
 function computeStats() {
   const todayDt = today();
   const flat = buildSchedule().flat();
   let done = 0, mins = 0, km = 0, sick = 0, streak = 0;
   let streaking = true;
-
   const active = flat.filter(d => !d.isRest && d.date <= todayDt);
   for (const d of [...active].sort((a,b) => b.date - a.date)) {
     const es = getEffStatus(d);
     if (es === 'done') { if (streaking) streak++; }
-    else if (es !== 'miss') streaking = false;
+    else if (es && es !== 'miss') streaking = false;
+    else if (es === 'miss') streaking = false;
   }
   for (const d of active) {
     const es = getEffStatus(d);
     const log = S.logs[dk(d.date)];
-    if (es === 'done') { done++; mins += log?.actualMins || d.baseMins; km += log?.actualKm || 0; }
+    if (es === 'done') { done++; mins += log?.actualMins || getRecommendedMins(d); km += log?.actualKm || 0; }
     if (es === 'sick') sick++;
   }
   return { done, mins: Math.round(mins), km: km.toFixed(1), sick, streak };
 }
 
-// ═══════════════════════════════════════════════════════
-//  WEEK TITLE / DESC
-// ═══════════════════════════════════════════════════════
-function weekTitle(w) {
+const WEEK_TITLES = [
+  'Week 1 — Gentle Start','Week 2 — Energy Rising','Week 3 — Steady Pace','Week 4 — Recovery Flow',
+  'Week 5 — Second Wind','Week 6 — Push Week','Week 7 — Holding Strong','Week 8 — Deload Week'
+];
+function weekTitle(w){
   if (w < WEEK_TITLES.length) return WEEK_TITLES[w];
-  const cycle = Math.floor((w - 12) / 4) + 2;
-  const phases = ['Building Strength', 'Peak Week', 'Steady Flow', 'Recovery'];
-  return `Cycle ${cycle} · ${phases[(w - 12) % 4]}`;
+  const cycle = Math.floor((w - 8) / 4) + 3;
+  const phases = ['Build', 'Push', 'Peak', 'Recover'];
+  return `Cycle ${cycle} · ${phases[(w - 8) % 4]}`;
 }
 function weekDesc(w) {
-  const t = getWeekTarget(w);
-  return `5 active days · ${t.min}–${t.max} min target`;
+  const t = getBlockTargets(w);
+  const off = getWeekOffset(w);
+  const bits = [`5 active days`, `${t.min + off}–${t.max + off} min target`];
+  if (off) bits.push(`${off > 0 ? '+' : ''}${off} min adaptation`);
+  return bits.join(' · ');
 }
 
-// ═══════════════════════════════════════════════════════
-//  RENDER — SCHEDULE
-// ═══════════════════════════════════════════════════════
+function renderTodayCard(weeks){
+  const flat = weeks.flat();
+  const td = today();
+  const todayEntry = flat.find(d => dk(d.date) === dk(td));
+  const info = getCycleInfo();
+  const readiness = getReadinessForDate(td);
+  const name = getProfile().name || 'Love';
+  const titleEl = document.getElementById('today-card-title');
+  const bodyEl = document.getElementById('today-card-body');
+  const sumEl = document.getElementById('today-summary');
+  if(!todayEntry){
+    titleEl.textContent = `Today is off-grid somehow. Impressive.`;
+    bodyEl.textContent = `No plan entry found for today. That’s not supposed to happen, which means the timeline goblins won.`;
+    sumEl.innerHTML = '';
+    return;
+  }
+  const rec = getRecommendedMins(todayEntry);
+  const readinessText = readiness ? readiness[0].toUpperCase() + readiness.slice(1) : 'Not checked in';
+  const phase = todayEntry.isRest ? 'r' : getPhase(td);
+  const phaseText = getProfile().cycleAware ? PHASE_LABELS[phase] : 'Standard mode';
+  const line = todayEntry.isRest || readiness === 'sick'
+    ? `${name}, today is a recovery call. No heroics.`
+    : `${name}, today’s recommendation is <strong>${rec} minutes</strong>. Base plan was ${todayEntry.baseMins} minutes.`;
+  titleEl.textContent = `Today’s plan`;
+  bodyEl.innerHTML = `${line} ${readiness ? `We adjusted it because you said you feel <strong>${readiness}</strong>.` : `No readiness check yet, so this is the base recommendation.`}`;
+  const confClass = info.confidence === 'high' ? 'high' : (info.confidence === 'med' ? 'med' : 'low');
+  sumEl.innerHTML = `
+    <div class="cmeta"><div class="cmeta-n">${todayEntry.isRest || readiness==='sick' ? 'Rest' : rec}</div><div class="cmeta-l">${todayEntry.isRest || readiness==='sick' ? 'Recommended' : 'Minutes'}</div></div>
+    <div class="cmeta"><div class="cmeta-n" style="font-size:16px">${readinessText}</div><div class="cmeta-l">Readiness</div></div>
+    <div class="cmeta"><div class="badge ${confClass}">${info.enabled ? info.confidence + ' confidence' : 'standard mode'}</div><div class="cmeta-l" style="margin-top:8px">${phaseText}</div></div>
+  `;
+}
+
 function renderSchedule(weeks) {
-  const offset = computeOffset();
-  if (offset !== S.adaptOffset) { S.adaptOffset = offset; saveState(); }
-
-  const ratio  = computePerfRatio();
-  const missed = computeRecentMissed();
+  evaluatePendingWeeks();
   const stats  = computeStats();
+  document.getElementById('streak').textContent = stats.streak > 0 ? `🔥 ${stats.streak} day streak` : "✨ Let's go!";
+  renderTodayCard(weeks);
 
-  // Streak chip
-  document.getElementById('streak').textContent =
-    stats.streak > 0 ? `🔥 ${stats.streak} day streak` : "✨ Let's go!";
-
-  // Adapt banner
   const ab = document.getElementById('abanner');
-  if (ratio >= 1.2 && offset > 0 && missed === 0) {
-    ab.className = 'abanner show up';
-    ab.innerHTML = `<strong>📈 Plan leveled up</strong>Sessions bumped +${offset} min — you're consistently exceeding targets!`;
-  } else if (offset < 0 || missed >= 2) {
-    ab.className = 'abanner show down';
-    ab.innerHTML = `<strong>🤲 Plan eased back</strong>Reduced by ${Math.abs(offset)} min to match your current pace. Quality over quantity.`;
+  const reason = getWeekReason(curWeek);
+  if(reason){
+    const off = getWeekOffset(curWeek);
+    ab.className = `abanner show ${off >= 0 ? 'up' : 'down'}`;
+    ab.innerHTML = `<strong>${off >= 0 ? '📈' : '🤲'} Weekly adjustment</strong>${reason}`;
   } else {
     ab.className = 'abanner';
+    ab.innerHTML = '';
   }
 
   const week = weeks[curWeek];
   const active = week.filter(d => !d.isRest);
   const doneCnt = active.filter(d => getEffStatus(d) === 'done').length;
   const pct = active.length ? Math.round((doneCnt / active.length) * 100) : 0;
-
   document.getElementById('wk-title').textContent = weekTitle(curWeek);
   document.getElementById('wk-desc').textContent  = weekDesc(curWeek);
   document.getElementById('wk-pct').textContent   = pct > 0 ? `${pct}% complete` : '';
   document.getElementById('wk-bar').style.width   = `${pct}%`;
 
-  // Week nav
   document.getElementById('wk-label').textContent = weekTitle(curWeek);
-  const hasDone = week.some(d => getEffStatus(d) === 'done');
-  const doneSub = doneCnt > 0 ? `${doneCnt}/${active.length} done` : '';
-  document.getElementById('wk-sub').innerHTML =
-    (hasDone ? '<span class="wksub-dot"></span> ' : '') +
-    `Week ${curWeek + 1} of ${weeks.length}` +
-    (doneSub ? ` · ${doneSub}` : '');
+  document.getElementById('wk-sub').innerHTML = `Week ${curWeek + 1} of ${weeks.length}` + (doneCnt ? ` · ${doneCnt}/${active.length} done` : '');
   document.getElementById('wk-prev').disabled = curWeek === 0;
   document.getElementById('wk-next').disabled = curWeek >= weeks.length - 1;
 
@@ -800,15 +1168,11 @@ function renderSchedule(weeks) {
     const isToday = day.date.getTime() === todayDt.getTime();
     const isFuture = day.date > todayDt;
     const phase = day.isRest ? 'r' : getPhase(day.date);
-    const effMins = applyOffset(day, offset);
-    const adapted = effMins !== day.baseMins && !day.isRest && !es && isFuture;
-
-    // Phase class + status class
+    const effMins = getRecommendedMins(day);
+    const adapted = !day.isRest && effMins !== day.baseMins && (isFuture || isToday);
     let phCls = `p-${phase}`;
     if (log?.isPeriod && !day.isRest) phCls = 'p-m';
     const stCls = es ? `s-${es}` : '';
-
-    // Phase label
     let phLabel;
     if      (es === 'done') phLabel = '✓ Completed';
     else if (es === 'rest') phLabel = 'Rest day';
@@ -816,12 +1180,8 @@ function renderSchedule(weeks) {
     else if (es === 'miss') phLabel = 'Not logged';
     else if (log?.isPeriod && !day.isRest) phLabel = `🔴 Period · ${PHASE_LABELS[phase]}`;
     else phLabel = PHASE_LABELS[phase];
-
-    // Mins display
     const showMins = day.isRest || ['rest','sick','miss'].includes(es) ? '—' : effMins;
     const showMinLbl = (!day.isRest && !['rest','sick','miss'].includes(es)) ? 'min' : '';
-
-    // Actual line
     let actualLine = '';
     if (es === 'done' && log && (log.actualMins || log.actualKm)) {
       const parts = [];
@@ -829,7 +1189,6 @@ function renderSchedule(weeks) {
       if (log.actualKm)   parts.push(`${log.actualKm} km`);
       actualLine = `<div class="dcard-actual">✓ ${parts.join(' · ')}</div>`;
     }
-
     const card = document.createElement('div');
     card.className = `dcard ${phCls} ${stCls} ${isToday ? 'today' : ''} anim`;
     card.style.animationDelay = `${idx * 35}ms`;
@@ -845,7 +1204,7 @@ function renderSchedule(weeks) {
           </div>
           <div class="dcard-info">
             <div class="dcard-phase">${phLabel}</div>
-            <div class="dcard-task">${day.task}</div>
+            <div class="dcard-task">${day.task.replace(`${day.baseMins}`, `${effMins}`)}</div>
             <div class="dcard-note">${day.note}</div>
             ${actualLine}
           </div>
@@ -861,9 +1220,6 @@ function renderSchedule(weeks) {
   });
 }
 
-// ═══════════════════════════════════════════════════════
-//  RENDER — STATS
-// ═══════════════════════════════════════════════════════
 function renderStats() {
   const { done, mins, km, sick } = computeStats();
   document.getElementById('s-done').textContent = done;
@@ -872,84 +1228,53 @@ function renderStats() {
   document.getElementById('s-sick').textContent = sick;
 }
 
-// ═══════════════════════════════════════════════════════
-//  RENDER — PROGRESS
-// ═══════════════════════════════════════════════════════
 function renderProgress(weeks) {
-  const todayDt = today();
   const flat = weeks.flat();
-
-  // Bar chart
   const doneSessions = flat.filter(d => !d.isRest && getEffStatus(d) === 'done').slice(-14);
   const maxMins = Math.max(60, ...doneSessions.map(d => Math.max(d.baseMins, S.logs[dk(d.date)]?.actualMins || 0)));
-  const chart = document.getElementById('bar-chart');
-  chart.innerHTML = '';
-  if (!doneSessions.length) {
-    chart.innerHTML = '<div style="width:100%;text-align:center;color:var(--faint);font-size:12px;padding-top:30px;font-weight:500;">Complete sessions to see your chart ✨</div>';
-  } else {
-    doneSessions.forEach(day => {
-      const tPct = Math.round((day.baseMins / maxMins) * 100);
-      const aPct = Math.round(((S.logs[dk(day.date)]?.actualMins || 0) / maxMins) * 100);
-      const col = document.createElement('div');
-      col.className = 'bcol';
-      col.innerHTML = `<div class="bwrap"><div class="bar t" style="height:${tPct}%"></div><div class="bar a" style="height:${aPct}%"></div></div><div class="blbl">${day.date.getDate()}</div>`;
-      chart.appendChild(col);
-    });
-  }
+  document.getElementById('bar-chart').innerHTML = doneSessions.map(d => {
+    const log = S.logs[dk(d.date)] || {};
+    const target = Math.round((d.baseMins / maxMins) * 100);
+    const actual = Math.round(((log.actualMins || d.baseMins) / maxMins) * 100);
+    return `<div class="bcol"><div class="bwrap"><div class="bar t" style="height:${target}%"></div><div class="bar a" style="height:${actual}%"></div></div><div class="blbl">${d.date.getDate()}</div></div>`;
+  }).join('');
 
-  // Week grids
   const grids = document.getElementById('wk-grids');
   grids.innerHTML = '';
-  weeks.forEach((week, wi) => {
+  weeks.slice(Math.max(0, getWeekIndex(today())-5), getWeekIndex(today())+1).forEach((week, idx) => {
+    const realW = Math.max(0, getWeekIndex(today())-5) + idx;
     const active = week.filter(d => !d.isRest);
-    const doneCnt  = active.filter(d => getEffStatus(d) === 'done').length;
-    const missedCnt = active.filter(d => ['rest','sick','miss'].includes(getEffStatus(d))).length;
-    const pct = active.length ? Math.round((doneCnt / active.length) * 100) : 0;
-
-    const card = document.createElement('div');
-    card.className = 'wk-grid';
-    const daysHTML = week.map(day => {
-      const es = getEffStatus(day);
-      const log = S.logs[dk(day.date)];
-      const isFuture = day.date > todayDt;
-      let cls = 'wkd';
-      if      (day.isRest)      cls += ' rest';
-      else if (es === 'done')   cls += ' done';
-      else if (es === 'rest')   cls += ' rested';
-      else if (es === 'sick')   cls += ' sick';
-      else if (es === 'miss')   cls += ' miss';
-      else if (log?.isPeriod)   cls += ' period';
-      else                      cls += isFuture ? ' empty' : ' miss';
-      return `<div class="${cls}">${day.isRest ? '–' : day.date.getDate()}</div>`;
-    }).join('');
-    card.innerHTML = `
-      <div class="wk-grid-hdr">
-        <div class="wk-grid-title">${weekTitle(wi)}</div>
-        <div class="wk-grid-stat">${doneCnt}/${active.length} · ${pct}%${missedCnt > 0 ? ` · ${missedCnt} missed` : ''}</div>
-      </div>
-      <div class="wk-days">${daysHTML}</div>`;
-    grids.appendChild(card);
+    const done = active.filter(d => getEffStatus(d)==='done').length;
+    const div = document.createElement('div');
+    div.className = 'wk-grid';
+    div.innerHTML = `<div class="wk-grid-hdr"><div class="wk-grid-title">${weekTitle(realW)}</div><div class="wk-grid-stat">${done}/${active.length} done</div></div>
+      <div class="wk-days">${week.map(d => {
+        const es = getEffStatus(d);
+        const cls = d.isRest ? 'rest' : (es==='done'?'done': es==='rest'?'rested': es==='sick'?'sick': es==='miss'?'miss': (S.logs[dk(d.date)]?.isPeriod?'period':'empty'));
+        return `<div class="wkd ${cls}">${DAYS[d.date.getDay()][0]}</div>`;
+      }).join('')}</div>
+      <div class="inline-note" style="margin-top:10px">${getWeekReason(realW) || 'No weekly adjustment note yet.'}</div>`;
+    grids.appendChild(div);
   });
 }
 
-// ═══════════════════════════════════════════════════════
-//  RENDER — CYCLE INFO
-// ═══════════════════════════════════════════════════════
 function renderCycle() {
-  const pdays = getPeriodDays();
-  const starts = getCycleStarts();
-  const cl = getCycleLen();
+  const info = getCycleInfo();
   const el = document.getElementById('cycle-status');
-  if (!pdays.length) {
-    el.innerHTML = '<h3>🔴 Cycle not yet calibrated</h3><p>Tag period days using the log button to help the app learn your real cycle. Until then it uses the estimated April 2 start.</p>';
-  } else {
-    el.innerHTML = `<h3>✅ Cycle calibrated from your tags</h3><p>Based on <strong>${pdays.length} period day${pdays.length > 1 ? 's' : ''}</strong> tagged. Phase colors are adjusted to your real rhythm.</p><p style="margin-top:6px"><strong>Estimated cycle: ${cl} days · ${starts.length} cycle${starts.length > 1 ? 's' : ''} tracked</strong></p>`;
+  if(!info.enabled){
+    el.innerHTML = `<h3>Standard walking mode</h3><p>Cycle-aware planning is off. The app is using readiness plus walk history only.</p>`;
+    return;
   }
+  const badge = info.confidence === 'high' ? 'high' : (info.confidence === 'med' ? 'med' : 'low');
+  const confidenceLabel = info.confidence === 'high' ? 'High confidence' : info.confidence === 'med' ? 'Medium confidence' : 'Low confidence';
+  el.innerHTML = `<h3>Cycle estimate</h3>
+    <p><span class="badge ${badge}">${confidenceLabel}</span></p>
+    <p style="margin-top:8px">Tracked period days: <strong>${info.trackedDays}</strong> · Estimated cycle: <strong>${info.cycleLength} days</strong> · Estimated period length: <strong>${info.periodLength} days</strong></p>
+    <p style="margin-top:6px">${info.confidence === 'low'
+      ? 'Still learning. Predictions are soft and should be treated like vibes with receipts, not medical truth.'
+      : 'This is now based on repeated logs, so the estimate is getting less hand-wavy.'}</p>`;
 }
 
-// ═══════════════════════════════════════════════════════
-//  RENDER — CALENDAR
-// ═══════════════════════════════════════════════════════
 function renderCalendar(weeks) {
   const todayDt = today();
   const flat = weeks.flat();
@@ -962,9 +1287,11 @@ function renderCalendar(weeks) {
 
   document.getElementById('cal-month').textContent = `${monthName} ${calYear}`;
   const firstPhase = getPhase(firstDay);
-  document.getElementById('cal-msub').textContent = `Starts in ${PHASE_LABELS[firstPhase]}`;
+  const info = getCycleInfo();
+  document.getElementById('cal-msub').innerHTML = info.enabled
+    ? `Starts in ${PHASE_LABELS[firstPhase]} · <span class="badge ${info.confidence==='high'?'high':info.confidence==='med'?'med':'low'}">${info.confidence} confidence</span>`
+    : `Standard mode`;
 
-  // Monthly stats
   let mDone = 0, mMins = 0, mKm = 0, mSick = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     const key = dk(new Date(calYear, calMonth, d));
@@ -972,7 +1299,7 @@ function renderCalendar(weeks) {
     if (!entry || entry.isRest) continue;
     const log = S.logs[key];
     const es = getEffStatus(entry);
-    if (es === 'done') { mDone++; mMins += log?.actualMins || entry.baseMins; mKm += log?.actualKm || 0; }
+    if (es === 'done') { mDone++; mMins += log?.actualMins || getRecommendedMins(entry); mKm += log?.actualKm || 0; }
     if (es === 'sick') mSick++;
   }
   document.getElementById('cal-stats').innerHTML = `
@@ -990,16 +1317,13 @@ function renderCalendar(weeks) {
     grid.appendChild(empty);
   }
 
-  const offset = S.adaptOffset;
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(calYear, calMonth, d);
-    date.setHours(0,0,0,0);
+    const date = new Date(calYear, calMonth, d); date.setHours(0,0,0,0);
     const key   = dk(date);
     const entry = lookup[key];
     const log   = S.logs[key];
     const isToday  = date.getTime() === todayDt.getTime();
     const isFuture = date > todayDt;
-
     let phCls = 'p-u', stCls = '', icon = '', minsText = '';
 
     if (entry) {
@@ -1007,9 +1331,8 @@ function renderCalendar(weeks) {
       phCls = `p-${phase}`;
       if (log?.isPeriod && !entry.isRest) phCls = 'p-m';
       const es = getEffStatus(entry);
-      const effMins = applyOffset(entry, offset);
-
-      if      (es === 'done') { stCls = 's-done'; icon = '✅'; const am = log?.actualMins || entry.baseMins; minsText = am + 'm' + (log?.actualKm ? ` · ${log.actualKm}k` : ''); }
+      const effMins = getRecommendedMins(entry);
+      if      (es === 'done') { stCls = 's-done'; icon = '✅'; const am = log?.actualMins || effMins; minsText = am + 'm' + (log?.actualKm ? ` · ${log.actualKm}k` : ''); }
       else if (es === 'sick') { stCls = 's-sick'; icon = '🤒'; minsText = 'sick'; }
       else if (es === 'rest') { stCls = 's-rest'; icon = '🛋️'; minsText = 'rest'; }
       else if (es === 'miss') { icon = '○'; }
@@ -1019,35 +1342,20 @@ function renderCalendar(weeks) {
 
     const cell = document.createElement('div');
     cell.className = `ccell ${phCls} ${stCls} ${isToday ? 'is-today' : ''} ${isFuture && !isToday ? 'future' : ''}`.trim();
-    cell.innerHTML = `
-      ${log?.isPeriod ? '<div class="period-pip"></div>' : ''}
-      <div class="ccell-num">${d}</div>
-      ${icon ? `<div class="ccell-icon">${icon}</div>` : ''}
-      ${minsText ? `<div class="ccell-mins">${minsText}</div>` : ''}`;
-
-    if (entry) {
-      const phase = entry.isRest ? 'r' : getPhase(date);
-      cell.onclick = () => openModal(key, entry, phase);
-    }
+    cell.innerHTML = `${log?.isPeriod ? '<div class="period-pip"></div>' : ''}<div class="ccell-num">${d}</div>${icon ? `<div class="ccell-icon">${icon}</div>` : ''}${minsText ? `<div class="ccell-mins">${minsText}</div>` : ''}`;
+    if (entry) cell.onclick = () => openModal(key, entry, entry.isRest ? 'r' : getPhase(date));
     grid.appendChild(cell);
   }
 }
 
-// ═══════════════════════════════════════════════════════
-//  TAB SWITCHING
-// ═══════════════════════════════════════════════════════
 function switchTab(btn) {
   const tab = btn.dataset.tab;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
   document.getElementById(`v-${tab}`).classList.add('active');
   btn.classList.add('active');
-
-  // Week nav only on schedule
   document.getElementById('wknav').style.display = tab === 'schedule' ? 'block' : 'none';
-
   document.getElementById('scroll').scrollTo({ top:0, behavior:'smooth' });
-
   const weeks = buildSchedule();
   if (tab === 'schedule') renderSchedule(weeks);
   if (tab === 'calendar') renderCalendar(weeks);
@@ -1055,20 +1363,12 @@ function switchTab(btn) {
   if (tab === 'progress') renderProgress(weeks);
   if (tab === 'cycle')    renderCycle();
 }
-
-// ═══════════════════════════════════════════════════════
-//  WEEK NAVIGATION
-// ═══════════════════════════════════════════════════════
 function navWeek(dir) {
   const weeks = buildSchedule();
   curWeek = Math.max(0, Math.min(curWeek + dir, weeks.length - 1));
   weekManual = true;
   renderSchedule(weeks);
 }
-
-// ═══════════════════════════════════════════════════════
-//  CALENDAR NAVIGATION
-// ═══════════════════════════════════════════════════════
 function calNav(dir) {
   calMonth += dir;
   if (calMonth > 11) { calMonth = 0; calYear++; }
@@ -1076,49 +1376,31 @@ function calNav(dir) {
   renderCalendar(buildSchedule());
 }
 
-// ═══════════════════════════════════════════════════════
-//  LOG MODAL
-// ═══════════════════════════════════════════════════════
 function openModal(key, day, phase) {
   modalKey    = key;
   modalStatus = null;
   const log = S.logs[key];
-
-  // Pre-select existing status
   document.querySelectorAll('.log-btn').forEach(b => b.classList.remove('sel'));
-  if (log?.status) {
-    selectStatus(log.status);
-  }
-
-  // Period checkbox
+  if (log?.status) selectStatus(log.status);
   const cb = document.getElementById('period-cb');
   cb.checked = !!(log?.isPeriod);
-
-  document.getElementById('modal-date').textContent =
-    `${DAYS[new Date(day.date).getDay()]}, ${MONTHS[new Date(day.date).getMonth()]} ${new Date(day.date).getDate()}`;
+  document.getElementById('modal-date').textContent = `${DAYS[new Date(day.date).getDay()]}, ${MONTHS[new Date(day.date).getMonth()]} ${new Date(day.date).getDate()}`;
   document.getElementById('modal-phase').textContent = PHASE_LABELS[phase] || '';
   document.getElementById('inp-mins').value = log?.actualMins || '';
   document.getElementById('inp-km').value   = log?.actualKm   || '';
-
-  // Show clear button if already logged
-  document.getElementById('mbtn-clear').style.display =
-    (log?.status || log?.isPeriod) ? 'block' : 'none';
-
+  document.getElementById('mbtn-clear').style.display = (log?.status || log?.isPeriod) ? 'block' : 'none';
   document.getElementById('modal-bg').classList.add('open');
 }
-
 function selectStatus(status) {
   modalStatus = status;
   document.querySelectorAll('.log-btn').forEach(b => b.classList.remove('sel'));
   document.querySelector(`.log-btn.${status}`)?.classList.add('sel');
   document.getElementById('inp-row').classList.toggle('show', status === 'done');
 }
-
 function togglePeriod() {
   const cb = document.getElementById('period-cb');
   cb.checked = !cb.checked;
 }
-
 function closeModal() {
   document.getElementById('modal-bg').classList.remove('open');
   modalKey = null;
@@ -1127,30 +1409,28 @@ function closeModal() {
   document.getElementById('inp-row').classList.remove('show');
   document.getElementById('period-cb').checked = false;
 }
-
 function saveLog() {
   if (!modalKey) return;
   const existing = S.logs[modalKey] || {};
   const isPeriod = document.getElementById('period-cb').checked;
-  const mins = parseFloat(document.getElementById('inp-mins').value) || null;
-  const km   = parseFloat(document.getElementById('inp-km').value)   || null;
+  const mins = parseFloat(document.getElementById('inp-mins').value);
+  const km   = parseFloat(document.getElementById('inp-km').value);
+  const cleanMins = Number.isFinite(mins) ? clamp(mins, 1, 180) : null;
+  const cleanKm = Number.isFinite(km) ? clamp(km, 0, 50) : null;
 
   if (modalStatus === 'done') {
-    S.logs[modalKey] = { ...existing, status:'done', actualMins:mins, actualKm:km, isPeriod };
+    S.logs[modalKey] = { ...existing, status:'done', actualMins:cleanMins, actualKm:cleanKm, isPeriod };
   } else if (modalStatus === 'rest') {
-    S.logs[modalKey] = { ...existing, status:'rest', isPeriod };
+    S.logs[modalKey] = { ...existing, status:'rest', actualMins:null, actualKm:null, isPeriod };
   } else if (modalStatus === 'sick') {
-    S.logs[modalKey] = { ...existing, status:'sick', isPeriod };
+    S.logs[modalKey] = { ...existing, status:'sick', actualMins:null, actualKm:null, isPeriod };
   } else {
-    // Only period tag, no status
     S.logs[modalKey] = { ...existing, isPeriod };
   }
-
   saveState();
   closeModal();
   renderAll();
 }
-
 function clearEntry() {
   if (!modalKey) return;
   delete S.logs[modalKey];
@@ -1158,35 +1438,28 @@ function clearEntry() {
   closeModal();
   renderAll();
 }
-
-// ═══════════════════════════════════════════════════════
-//  CLEAR ALL
-// ═══════════════════════════════════════════════════════
 function openConfirm()  { document.getElementById('confirm-bg').classList.add('open'); }
 function closeConfirm() { document.getElementById('confirm-bg').classList.remove('open'); }
 function clearAll() {
-  S = { logs:{}, adaptOffset:0 };
+  const profile = S.profile;
+  const meta = S.meta;
+  S = deepClone(DEFAULT_STATE);
+  S.profile = profile;
+  S.meta = meta;
   saveState();
   closeConfirm();
   weekManual = false;
   renderAll();
 }
 
-// ═══════════════════════════════════════════════════════
-//  MASTER RENDER
-// ═══════════════════════════════════════════════════════
 function renderAll() {
+  evaluatePendingWeeks();
   const weeks = buildSchedule();
-
-  // Auto-scroll to current week on first load
   if (!weekManual) {
-    const todayDt = today();
-    const diffDays = Math.floor((todayDt - START_DATE) / 86400000);
-    curWeek = Math.max(0, Math.min(Math.floor(diffDays / 7), weeks.length - 1));
+    curWeek = Math.max(0, Math.min(getWeekIndex(today()), weeks.length - 1));
   }
   curWeek = Math.max(0, Math.min(curWeek, weeks.length - 1));
-
-  // Render whichever tab is active
+  document.querySelector('.app-sub').textContent = S.profile ? `Adaptive walking & heart health log for ${getProfile().name}` : 'Adaptive walking & heart health log';
   const activeTab = document.querySelector('.tbtn.active')?.dataset.tab || 'schedule';
   if (activeTab === 'schedule') renderSchedule(weeks);
   if (activeTab === 'calendar') renderCalendar(weeks);
@@ -1195,11 +1468,12 @@ function renderAll() {
   if (activeTab === 'cycle')    renderCycle();
 }
 
-// ═══════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════
 S = loadState();
+saveState();
+if(!S.profile) openSetup(0);
 renderAll();
+setTimeout(() => { if(S.profile) maybeAskReadiness(false); }, 200);
 </script>
+
 </body>
 </html>
