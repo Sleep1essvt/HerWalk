@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Her Walk</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --m:#C4606A; --m-bg:#FDF0F1; --m-border:#E8B4B8; --m-text:#8B2D35;
+  --f:#3A7DB5; --f-bg:#EFF6FC; --f-border:#A8C8E8; --f-text:#1A4D7A;
+  --o:#3A8C4A; --o-bg:#EEF8F0; --o-border:#A8D8B0; --o-text:#1E5C2A;
+  --l:#B07820; --l-bg:#FDF7E8; --l-border:#F0D090; --l-text:#7A5010;
+  --sick:#6A6AB0; --sick-bg:#F0F0FA; --sick-border:#C0C0E0;
+  --rest-bg:#F5F5F3; --rest:#C0BDB5;
+  --done:#2E8C4A; --done-bg:#EAF7EE; --done-border:#90D4A8;
+  --skip:#A8A8A0; --skip-bg:#F5F5F3; --skip-border:#D0CFC9;
+  --ink:#1A1814; --muted:#7A7670; --faint:#C8C6C0;
+  --surface:#FFFFFF; --ground:#F7F6F2; --paper:#FDFCF8;
+  --border:rgba(0,0,0,0.08);
+  --shadow:0 2px 14px rgba(0,0,0,0.06);
+  --r:16px; --rs:10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; background:var(--ground); color:var(--ink); }
+
+/* ── APP SHELL ── */
+#app { display:flex; flex-direction:column; height:100vh; }
+
+/* ── HEADER ── */
+#hdr { background:var(--paper); border-bottom:1px solid var(--border); padding:14px 0 0; flex-shrink:0; }
+.hdr-inner { max-width:700px; margin:0 auto; padding:0 20px; }
+.hdr-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; }
+.app-name { font-family:'DM Serif Display',serif; font-size:23px; line-height:1; }
+.app-name em { font-style:italic; color:var(--m); }
+.app-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+.streak { background:var(--ink); color:#fff; font-size:11px; font-weight:500; padding:4px 12px; border-radius:20px; flex-shrink:0; margin-top:2px; }
+.phases { display:flex; gap:10px; flex-wrap:wrap; padding-bottom:12px; }
+.ph-dot { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-weight:500; }
+.ph-dot span { width:6px; height:6px; border-radius:50%; display:block; }
+
+/* ── WEEK NAV ── */
+#wknav { background:var(--paper); border-bottom:1px solid var(--border); padding:8px 0; flex-shrink:0; }
+.wknav-inner { max-width:700px; margin:0 auto; padding:0 20px; display:flex; align-items:center; gap:10px; }
+.wkarr { width:30px; height:30px; border-radius:50%; border:1.5px solid var(--border); background:transparent; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink); flex-shrink:0; transition:background .15s; }
+.wkarr:hover { background:var(--ground); }
+.wkarr:disabled { opacity:.25; cursor:default; }
+.wkcenter { flex:1; text-align:center; }
+.wklabel { font-family:'DM Serif Display',serif; font-size:15px; display:block; }
+.wksub { font-size:10px; color:var(--muted); display:flex; align-items:center; justify-content:center; gap:4px; margin-top:1px; }
+.wksub-dot { width:5px; height:5px; border-radius:50%; background:var(--done); display:inline-block; }
+
+/* ── SCROLL ── */
+#scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; min-height:0; }
+.vinner { max-width:700px; margin:0 auto; padding:14px 20px 90px; }
+
+/* ── VIEWS ── */
+.view { display:none; }
+.view.active { display:block; }
+
+/* ── ADAPT BANNER ── */
+.abanner { border-radius:var(--rs); padding:10px 14px; margin-bottom:12px; font-size:12px; line-height:1.5; display:none; }
+.abanner.show { display:block; }
+.abanner.up { background:var(--done-bg); color:var(--o-text); border:1px solid var(--done-border); }
+.abanner.down { background:var(--l-bg); color:var(--l-text); border:1px solid var(--l-border); }
+.abanner strong { display:block; margin-bottom:2px; font-size:12px; }
+
+/* ── WEEK HEADER ── */
+.wkhdr { margin-bottom:12px; }
+.wkhdr-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px; }
+.wkhdr-title { font-family:'DM Serif Display',serif; font-size:19px; }
+.wkhdr-pct { font-size:11px; color:var(--done); font-weight:600; }
+.wkhdr-desc { font-size:11px; color:var(--muted); margin-bottom:7px; }
+.wkhdr-bar { height:3px; background:rgba(0,0,0,.08); border-radius:2px; overflow:hidden; }
+.wkhdr-fill { height:100%; background:var(--ink); border-radius:2px; transition:width .4s; }
+
+/* ── DAY CARDS ── */
+.dlist { display:flex; flex-direction:column; gap:7px; }
+.dcard { border-radius:var(--r); overflow:hidden; cursor:pointer; box-shadow:var(--shadow); transition:transform .12s; }
+.dcard:active { transform:scale(.985); }
+.dcard-inner { display:flex; }
+.dcard-stripe { width:4px; flex-shrink:0; }
+.dcard-body { flex:1; display:flex; align-items:center; padding:12px 14px 12px 11px; gap:12px; }
+
+/* Phase theming */
+.p-m .dcard-stripe { background:var(--m); } .p-m .dcard-body { background:var(--m-bg); } .p-m .dcard-phase { color:var(--m-text); } .p-m .dcard-mins { color:var(--m); }
+.p-f .dcard-stripe { background:var(--f); } .p-f .dcard-body { background:var(--f-bg); } .p-f .dcard-phase { color:var(--f-text); } .p-f .dcard-mins { color:var(--f); }
+.p-o .dcard-stripe { background:var(--o); } .p-o .dcard-body { background:var(--o-bg); } .p-o .dcard-phase { color:var(--o-text); } .p-o .dcard-mins { color:var(--o); }
+.p-l .dcard-stripe { background:var(--l); } .p-l .dcard-body { background:var(--l-bg); } .p-l .dcard-phase { color:var(--l-text); } .p-l .dcard-mins { color:var(--l); }
+.p-r .dcard-stripe { background:var(--rest); } .p-r .dcard-body { background:var(--rest-bg); } .p-r .dcard-phase { color:var(--rest); } .p-r .dcard-mins { color:var(--rest); }
+
+/* Status overrides */
+.s-done .dcard-stripe { background:var(--done)!important; } .s-done .dcard-body { background:var(--done-bg)!important; } .s-done .dcard-phase { color:var(--done)!important; } .s-done .dcard-mins { color:var(--done)!important; }
+.s-rest .dcard-stripe { background:var(--skip)!important; } .s-rest .dcard-body { background:var(--skip-bg)!important; opacity:.8; } .s-rest .dcard-phase { color:var(--skip)!important; } .s-rest .dcard-mins { color:var(--skip)!important; }
+.s-sick .dcard-stripe { background:var(--sick)!important; } .s-sick .dcard-body { background:var(--sick-bg)!important; } .s-sick .dcard-phase { color:var(--sick)!important; } .s-sick .dcard-mins { color:var(--sick)!important; }
+.s-miss .dcard-stripe { background:var(--faint)!important; } .s-miss .dcard-body { background:var(--rest-bg)!important; opacity:.6; } .s-miss .dcard-phase { color:var(--faint)!important; } .s-miss .dcard-mins { color:var(--faint)!important; }
+.dcard.today .dcard-body { box-shadow:inset 0 0 0 2px var(--ink); }
+
+.dcard-date { flex-shrink:0; width:40px; text-align:center; }
+.dcard-dow { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+.dcard-day { font-family:'DM Serif Display',serif; font-size:22px; line-height:1.1; }
+.dcard-mon { font-size:9px; color:var(--muted); text-transform:uppercase; }
+.dcard-info { flex:1; min-width:0; }
+.dcard-phase { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; margin-bottom:2px; }
+.dcard-task { font-size:14px; font-weight:500; margin-bottom:1px; }
+.dcard-note { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dcard-actual { font-size:11px; color:var(--done); font-weight:500; margin-top:2px; }
+.dcard-right { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+.dcard-mins { font-family:'DM Serif Display',serif; font-size:26px; line-height:1; }
+.dcard-minlbl { font-size:9px; color:var(--muted); }
+.dcard-today { background:var(--ink); color:#fff; font-size:9px; font-weight:600; padding:2px 7px; border-radius:10px; text-transform:uppercase; }
+.dcard-adj { background:var(--l-border); color:var(--l-text); font-size:9px; font-weight:600; padding:2px 6px; border-radius:6px; }
+
+/* ── SECTION TITLES ── */
+.stitle { font-family:'DM Serif Display',serif; font-size:22px; margin-bottom:4px; }
+.ssub { font-size:12px; color:var(--muted); margin-bottom:16px; }
+
+/* ── STATS VIEW ── */
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:18px; box-shadow:var(--shadow); text-align:center; }
+.stat-n { font-family:'DM Serif Display',serif; font-size:42px; line-height:1; margin-bottom:4px; }
+.stat-l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.stat-n.green { color:var(--done); }
+.stat-n.red { color:var(--m); }
+.stat-n.amber { color:var(--l); }
+.phase-legend-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px; box-shadow:var(--shadow); display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ── CALENDAR ── */
+.calnav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.calnav-arr { width:34px; height:34px; border-radius:50%; border:1.5px solid var(--border); background:transparent; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink); transition:background .15s; }
+.calnav-arr:hover { background:var(--ground); }
+.cal-month { font-family:'DM Serif Display',serif; font-size:20px; text-align:center; }
+.cal-msub { font-size:10px; color:var(--muted); text-align:center; margin-top:2px; }
+.cal-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:14px; }
+.cal-stat { background:var(--surface); border:1px solid var(--border); border-radius:var(--rs); padding:10px 4px; text-align:center; box-shadow:var(--shadow); }
+.cal-stat-n { font-family:'DM Serif Display',serif; font-size:18px; line-height:1; margin-bottom:2px; }
+.cal-stat-l { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.cal-stat-n.green { color:var(--done); }
+.cal-stat-n.red { color:var(--m); }
+.cal-stat-n.amber { color:var(--l); }
+.dow-row { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:2px; }
+.dow-cell { text-align:center; font-size:9px; font-weight:600; color:var(--muted); text-transform:uppercase; padding:3px 0; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.ccell { border-radius:10px; padding:5px 2px 6px; min-height:62px; display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; border:1px solid transparent; position:relative; transition:transform .1s; }
+.ccell:active { transform:scale(.93); }
+.ccell.empty { background:transparent!important; border:none!important; cursor:default; }
+.ccell.p-m { background:var(--m-bg); border-color:var(--m-border); }
+.ccell.p-f { background:var(--f-bg); border-color:var(--f-border); }
+.ccell.p-o { background:var(--o-bg); border-color:var(--o-border); }
+.ccell.p-l { background:var(--l-bg); border-color:var(--l-border); }
+.ccell.p-r { background:var(--rest-bg); }
+.ccell.p-u { background:var(--surface); border-color:var(--border); }
+.ccell.s-done { background:var(--done-bg)!important; border-color:var(--done-border)!important; }
+.ccell.s-sick { background:var(--sick-bg)!important; border-color:var(--sick-border)!important; }
+.ccell.s-rest { background:var(--skip-bg)!important; border-color:var(--skip-border)!important; }
+.ccell.is-today { box-shadow:0 0 0 2px var(--ink); border-color:transparent!important; }
+.ccell.future { opacity:.5; }
+.ccell-num { font-family:'DM Serif Display',serif; font-size:14px; line-height:1; }
+.ccell.p-m .ccell-num { color:var(--m-text); }
+.ccell.p-f .ccell-num { color:var(--f-text); }
+.ccell.p-o .ccell-num { color:var(--o-text); }
+.ccell.p-l .ccell-num { color:var(--l-text); }
+.ccell.s-done .ccell-num { color:var(--done)!important; }
+.ccell.s-sick .ccell-num { color:var(--sick)!important; }
+.ccell.s-rest .ccell-num { color:var(--skip)!important; }
+.ccell-icon { font-size:13px; line-height:1; }
+.ccell-mins { font-size:8px; font-weight:500; color:var(--muted); }
+.ccell.s-done .ccell-mins { color:var(--done); }
+.period-pip { position:absolute; top:3px; right:3px; width:5px; height:5px; border-radius:50%; background:var(--m); }
+
+/* ── PROGRESS ── */
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:14px; box-shadow:var(--shadow); }
+.chart-label { font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px; }
+.bar-chart { display:flex; align-items:flex-end; gap:4px; height:100px; }
+.bcol { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.bwrap { width:100%; flex:1; display:flex; align-items:flex-end; gap:2px; }
+.bar { border-radius:3px 3px 0 0; min-height:2px; width:45%; }
+.bar.t { background:rgba(0,0,0,.1); }
+.bar.a { background:var(--done); }
+.blbl { font-size:9px; color:var(--muted); }
+.chart-legend { display:flex; gap:12px; margin-top:8px; }
+.cl { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+.cl-box { width:10px; height:10px; border-radius:2px; }
+.wk-grid { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px; margin-bottom:8px; box-shadow:var(--shadow); }
+.wk-grid-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.wk-grid-title { font-size:13px; font-weight:500; }
+.wk-grid-stat { font-size:11px; color:var(--muted); }
+.wk-days { display:flex; gap:3px; flex-wrap:wrap; }
+.wkd { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:500; }
+.wkd.done { background:var(--done-bg); color:var(--done); border:1px solid var(--done-border); }
+.wkd.rested { background:var(--skip-bg); color:var(--skip); border:1px solid var(--skip-border); }
+.wkd.sick { background:var(--sick-bg); color:var(--sick); border:1px solid var(--sick-border); }
+.wkd.period { background:var(--m-bg); color:var(--m); border:1px solid var(--m-border); }
+.wkd.rest { background:var(--rest-bg); color:var(--rest); border:1px solid var(--border); }
+.wkd.empty { background:var(--ground); color:var(--faint); border:1px solid var(--border); }
+.wkd.miss { background:var(--ground); color:var(--faint); border:1px solid var(--border); opacity:.5; }
+.clear-row { display:flex; justify-content:flex-end; margin-bottom:14px; }
+.clear-btn { background:transparent; border:1.5px solid var(--border); border-radius:var(--rs); padding:7px 14px; font-size:11px; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .15s; }
+.clear-btn:hover { border-color:var(--m-border); color:var(--m); }
+
+/* ── CYCLE ── */
+.cycle-status { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px; margin-bottom:14px; box-shadow:var(--shadow); }
+.cycle-status h3 { font-size:14px; font-weight:500; margin-bottom:5px; }
+.cycle-status p { font-size:12px; color:var(--muted); line-height:1.6; }
+.cycle-status strong { color:var(--ink); font-weight:500; }
+.phase-card { border-radius:var(--r); padding:18px; margin-bottom:10px; border:1px solid transparent; box-shadow:var(--shadow); }
+.phase-card.m { background:var(--m-bg); border-color:var(--m-border); }
+.phase-card.f { background:var(--f-bg); border-color:var(--f-border); }
+.phase-card.o { background:var(--o-bg); border-color:var(--o-border); }
+.phase-card.l { background:var(--l-bg); border-color:var(--l-border); }
+.pc-days { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; opacity:.6; margin-bottom:3px; }
+.pc-name { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:8px; }
+.pc-body { font-size:12px; line-height:1.7; }
+.m .pc-days, .m .pc-name { color:var(--m-text); } .f .pc-days, .f .pc-name { color:var(--f-text); } .o .pc-days, .o .pc-name { color:var(--o-text); } .l .pc-days, .l .pc-name { color:var(--l-text); }
+.pc-elbl { font-size:9px; text-transform:uppercase; letter-spacing:.06em; opacity:.55; font-weight:600; margin:10px 0 4px; }
+.m .pc-elbl { color:var(--m-text); } .f .pc-elbl { color:var(--f-text); } .o .pc-elbl { color:var(--o-text); } .l .pc-elbl { color:var(--l-text); }
+.pc-bar { height:5px; background:rgba(0,0,0,.1); border-radius:3px; overflow:hidden; }
+.pc-fill { height:100%; border-radius:3px; }
+.m .pc-fill { background:var(--m); width:22%; }
+.f .pc-fill { background:var(--f); width:70%; }
+.o .pc-fill { background:var(--o); width:95%; }
+.l .pc-fill { background:var(--l); width:50%; }
+
+/* ── TIPS ── */
+.tip { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:10px; display:flex; gap:12px; box-shadow:var(--shadow); }
+.tip-icon { font-size:20px; flex-shrink:0; line-height:1.3; }
+.tip-title { font-size:14px; font-weight:500; margin-bottom:3px; }
+.tip-body { font-size:12px; color:var(--muted); line-height:1.6; }
+
+/* ── LOG MODAL ── */
+#modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:none; align-items:flex-end; justify-content:center; }
+#modal-bg.open { display:flex; animation:fadein .18s; }
+@keyframes fadein { from{opacity:0} to{opacity:1} }
+#modal { background:var(--paper); border-radius:22px 22px 0 0; width:100%; max-width:520px; padding:20px 20px 40px; animation:slideup .22s cubic-bezier(.34,1.1,.64,1); }
+@keyframes slideup { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-handle { width:36px; height:4px; background:rgba(0,0,0,.15); border-radius:2px; margin:0 auto 16px; }
+.modal-date { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:2px; }
+.modal-phase { font-size:10px; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:16px; }
+.log-btns { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+.log-btn { border:2px solid var(--border); border-radius:var(--rs); padding:12px 6px; cursor:pointer; text-align:center; background:var(--surface); font-family:'DM Sans',sans-serif; transition:all .15s; }
+.log-btn:hover { border-color:var(--faint); }
+.log-btn .icon { font-size:22px; margin-bottom:3px; }
+.log-btn .lbl { font-size:11px; font-weight:500; }
+.log-btn.done.sel { background:var(--done-bg); border-color:var(--done); }
+.log-btn.rest.sel { background:var(--skip-bg); border-color:var(--skip); }
+.log-btn.sick.sel { background:var(--sick-bg); border-color:var(--sick); }
+.period-toggle { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--rs); background:var(--m-bg); border:1px solid var(--m-border); margin-bottom:12px; cursor:pointer; }
+.period-toggle input { width:18px; height:18px; accent-color:var(--m); flex-shrink:0; cursor:pointer; }
+.pt-label { font-size:13px; font-weight:500; color:var(--m-text); }
+.pt-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+.inp-row { display:none; gap:10px; margin-bottom:12px; }
+.inp-row.show { display:flex; }
+.inp-col { flex:1; }
+.inp-lbl { font-size:10px; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+.inp-lbl-unit { font-size:9px; color:var(--muted); margin-top:2px; }
+.inp { width:100%; border:1.5px solid var(--border); border-radius:var(--rs); padding:10px 12px; font-size:16px; font-family:'DM Sans',sans-serif; background:var(--surface); color:var(--ink); outline:none; transition:border-color .15s; }
+.inp:focus { border-color:rgba(0,0,0,.3); }
+.modal-actions { display:flex; gap:8px; }
+.mbtn-cancel { flex:0 0 auto; padding:13px 16px; border-radius:var(--rs); border:1.5px solid var(--border); background:transparent; font-size:14px; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--muted); }
+.mbtn-clear { flex:0 0 auto; padding:13px 12px; border-radius:var(--rs); border:1.5px solid var(--m-border); background:transparent; font-size:14px; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--m); display:none; }
+.mbtn-clear:hover { background:var(--m-bg); }
+.mbtn-save { flex:1; padding:13px; border-radius:var(--rs); border:none; background:var(--ink); color:#fff; font-size:14px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.mbtn-save:hover { opacity:.88; }
+
+/* ── CONFIRM MODAL ── */
+#confirm-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:300; display:none; align-items:center; justify-content:center; padding:20px; }
+#confirm-bg.open { display:flex; }
+#confirm-modal { background:var(--paper); border-radius:20px; padding:24px; width:100%; max-width:320px; text-align:center; }
+.confirm-title { font-family:'DM Serif Display',serif; font-size:20px; margin-bottom:8px; }
+.confirm-body { font-size:12px; color:var(--muted); line-height:1.6; margin-bottom:20px; }
+.confirm-actions { display:flex; gap:8px; }
+.cbtn-cancel { flex:1; padding:13px; border-radius:var(--rs); border:1.5px solid var(--border); background:transparent; font-size:14px; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--muted); }
+.cbtn-confirm { flex:1; padding:13px; border-radius:var(--rs); border:none; background:var(--m); color:#fff; font-size:14px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+
+/* ── BOTTOM TAB BAR ── */
+#tabbar { position:fixed; bottom:0; left:0; right:0; background:var(--paper); border-top:1px solid var(--border); display:flex; padding:6px 0 max(12px,env(safe-area-inset-bottom)); z-index:100; box-shadow:0 -2px 12px rgba(0,0,0,.05); }
+.tbtn { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; cursor:pointer; padding:4px 2px; font-family:'DM Sans',sans-serif; }
+.tbtn-icon { font-size:19px; line-height:1; }
+.tbtn-lbl { font-size:9px; color:var(--muted); font-weight:500; text-transform:uppercase; letter-spacing:.05em; }
+.tbtn.active .tbtn-lbl { color:var(--ink); }
+
+.anim { animation:fadeup .2s ease both; }
+@keyframes fadeup { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="hdr">
+    <div class="hdr-inner">
+      <div class="hdr-top">
+        <div>
+          <div class="app-name">Her <em>Walk</em></div>
+          <div class="app-sub">Adaptive walking &amp; heart health log</div>
+        </div>
+        <div class="streak" id="streak">✨ Let's go!</div>
+      </div>
+      <div class="phases">
+        <div class="ph-dot"><span style="background:var(--m)"></span>Period</div>
+        <div class="ph-dot"><span style="background:var(--f)"></span>Follicular</div>
+        <div class="ph-dot"><span style="background:var(--o)"></span>Ovulation</div>
+        <div class="ph-dot"><span style="background:var(--l)"></span>Luteal</div>
+        <div class="ph-dot"><span style="background:var(--rest)"></span>Rest</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK NAV (only visible on schedule tab) -->
+  <div id="wknav">
+    <div class="wknav-inner">
+      <button class="wkarr" id="wk-prev" onclick="navWeek(-1)">&#8592;</button>
+      <div class="wkcenter">
+        <span class="wklabel" id="wk-label">Loading...</span>
+        <span class="wksub" id="wk-sub"></span>
+      </div>
+      <button class="wkarr" id="wk-next" onclick="navWeek(1)">&#8594;</button>
+    </div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div id="scroll">
+
+    <!-- SCHEDULE TAB -->
+    <div id="v-schedule" class="view active">
+      <div class="vinner">
+        <div class="abanner" id="abanner"></div>
+        <div class="wkhdr">
+          <div class="wkhdr-top">
+            <div class="wkhdr-title" id="wk-title"></div>
+            <div class="wkhdr-pct" id="wk-pct"></div>
+          </div>
+          <div class="wkhdr-desc" id="wk-desc"></div>
+          <div class="wkhdr-bar"><div class="wkhdr-fill" id="wk-bar" style="width:0%"></div></div>
+        </div>
+        <div class="dlist" id="dlist"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR TAB -->
+    <div id="v-calendar" class="view">
+      <div class="vinner">
+        <div class="calnav">
+          <button class="calnav-arr" onclick="calNav(-1)">&#8592;</button>
+          <div>
+            <div class="cal-month" id="cal-month"></div>
+            <div class="cal-msub" id="cal-msub"></div>
+          </div>
+          <button class="calnav-arr" onclick="calNav(1)">&#8594;</button>
+        </div>
+        <div class="cal-stats" id="cal-stats"></div>
+        <div class="dow-row">
+          <div class="dow-cell">Sun</div><div class="dow-cell">Mon</div><div class="dow-cell">Tue</div>
+          <div class="dow-cell">Wed</div><div class="dow-cell">Thu</div><div class="dow-cell">Fri</div><div class="dow-cell">Sat</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div id="v-stats" class="view">
+      <div class="vinner">
+        <div class="stitle">My Stats</div>
+        <div class="ssub">Your progress at a glance.</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-n green" id="s-done">0</div><div class="stat-l">Sessions done</div></div>
+          <div class="stat-card"><div class="stat-n" id="s-mins">0</div><div class="stat-l">Minutes walked</div></div>
+          <div class="stat-card"><div class="stat-n amber" id="s-km">0.0</div><div class="stat-l">km total</div></div>
+          <div class="stat-card"><div class="stat-n red" id="s-sick">0</div><div class="stat-l">Sick days</div></div>
+        </div>
+        <div class="phase-legend-box">
+          <div class="ph-dot"><span style="background:var(--m)"></span>Period</div>
+          <div class="ph-dot"><span style="background:var(--f)"></span>Follicular</div>
+          <div class="ph-dot"><span style="background:var(--o)"></span>Ovulation</div>
+          <div class="ph-dot"><span style="background:var(--l)"></span>Luteal</div>
+          <div class="ph-dot"><span style="background:var(--rest)"></span>Rest</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS TAB -->
+    <div id="v-progress" class="view">
+      <div class="vinner">
+        <div class="stitle">Progress</div>
+        <div class="ssub">Actual results vs the plan.</div>
+        <div class="chart-card">
+          <div class="chart-label">Minutes walked · last 14 sessions</div>
+          <div class="bar-chart" id="bar-chart"></div>
+          <div class="chart-legend">
+            <div class="cl"><div class="cl-box" style="background:rgba(0,0,0,.1)"></div>Target</div>
+            <div class="cl"><div class="cl-box" style="background:var(--done)"></div>Actual</div>
+          </div>
+        </div>
+        <div class="clear-row"><button class="clear-btn" onclick="openConfirm()">🗑 Clear all entries</button></div>
+        <div id="wk-grids"></div>
+      </div>
+    </div>
+
+    <!-- CYCLE TAB -->
+    <div id="v-cycle" class="view">
+      <div class="vinner">
+        <div class="stitle">Your Cycle</div>
+        <div class="ssub">The app learns your rhythm as you tag period days.</div>
+        <div class="cycle-status" id="cycle-status"></div>
+        <div class="phase-card m">
+          <div class="pc-days">Days 1–5 · Period</div><div class="pc-name">Menstrual</div>
+          <div class="pc-body">Prostaglandins cause cramps and fatigue. Gentle walks (15–20 min) reduce pain through circulation and endorphins. Rest is always valid — no guilt.</div>
+          <div class="pc-elbl">Energy level</div><div class="pc-bar"><div class="pc-fill"></div></div>
+        </div>
+        <div class="phase-card f">
+          <div class="pc-days">Days 6–13 · Follicular</div><div class="pc-name">Follicular</div>
+          <div class="pc-body">Estrogen rises — energy surges, mood lifts, motivation returns. Best window to push duration and lock in new habits. You will feel it.</div>
+          <div class="pc-elbl">Energy level</div><div class="pc-bar"><div class="pc-fill"></div></div>
+        </div>
+        <div class="phase-card o">
+          <div class="pc-days">Days 14–16 · Ovulation</div><div class="pc-name">Ovulation</div>
+          <div class="pc-body">Peak estrogen and testosterone. You feel unstoppable — full 50-minute walks with real effort. Best you will feel all cycle. Use it.</div>
+          <div class="pc-elbl">Energy level</div><div class="pc-bar"><div class="pc-fill"></div></div>
+        </div>
+        <div class="phase-card l">
+          <div class="pc-days">Days 17–28 · Luteal</div><div class="pc-name">Luteal</div>
+          <div class="pc-body">Progesterone rises. Energy dips, PMS symptoms build toward end. Moderate pace on rough days. Consistent walking reduces PMS severity over time.</div>
+          <div class="pc-elbl">Energy level</div><div class="pc-bar"><div class="pc-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIPS TAB -->
+    <div id="v-tips" class="view">
+      <div class="vinner">
+        <div class="stitle">Tips</div>
+        <div class="ssub">Small things that compound into big results.</div>
+        <div class="tip"><div class="tip-icon">💧</div><div><div class="tip-title">Hydrate extra on period &amp; luteal days</div><div class="tip-body">Dehydration makes cramps and fatigue worse. One extra glass before your walk makes a real difference.</div></div></div>
+        <div class="tip"><div class="tip-icon">👟</div><div><div class="tip-title">Shoes matter more than speed</div><div class="tip-body">Shin splints kill habits fast. One good pair of walking shoes prevents this entirely.</div></div></div>
+        <div class="tip"><div class="tip-icon">🎵</div><div><div class="tip-title">Music adds ~10% to walk duration</div><div class="tip-body">A pump playlist makes 50 minutes feel like 35. Build it the night before.</div></div></div>
+        <div class="tip"><div class="tip-icon">🌡️</div><div><div class="tip-title">Fever or nausea = full rest, no guilt</div><div class="tip-body">Light movement during period is helpful. Pushing through illness is not. Tag it as sick.</div></div></div>
+        <div class="tip"><div class="tip-icon">⏰</div><div><div class="tip-title">Same time daily builds habit faster</div><div class="tip-body">Pick one anchor — morning or pre-dinner walk — and hold it for 3 weeks.</div></div></div>
+        <div class="tip"><div class="tip-icon">📈</div><div><div class="tip-title">Benefits show up around week 5–6</div><div class="tip-body">Lower resting heart rate, better sleep, stable energy. You will feel it before you measure it.</div></div></div>
+        <div class="tip"><div class="tip-icon">📅</div><div><div class="tip-title">Tag every period day you can</div><div class="tip-body">The more period days tagged, the more accurately the app knows your real cycle.</div></div></div>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+</div><!-- /app -->
+
+<!-- BOTTOM TAB BAR -->
+<div id="tabbar">
+  <button class="tbtn active" data-tab="schedule" onclick="switchTab(this)"><span class="tbtn-icon">🗓</span><span class="tbtn-lbl">Schedule</span></button>
+  <button class="tbtn" data-tab="calendar" onclick="switchTab(this)"><span class="tbtn-icon">📅</span><span class="tbtn-lbl">Calendar</span></button>
+  <button class="tbtn" data-tab="stats" onclick="switchTab(this)"><span class="tbtn-icon">📊</span><span class="tbtn-lbl">Stats</span></button>
+  <button class="tbtn" data-tab="progress" onclick="switchTab(this)"><span class="tbtn-icon">📈</span><span class="tbtn-lbl">Progress</span></button>
+  <button class="tbtn" data-tab="cycle" onclick="switchTab(this)"><span class="tbtn-icon">🌙</span><span class="tbtn-lbl">Cycle</span></button>
+  <button class="tbtn" data-tab="tips" onclick="switchTab(this)"><span class="tbtn-icon">💡</span><span class="tbtn-lbl">Tips</span></button>
+</div>
+
+<!-- LOG MODAL -->
+<div id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-date" id="modal-date"></div>
+    <div class="modal-phase" id="modal-phase"></div>
+    <div class="log-btns">
+      <div class="log-btn done" onclick="selectStatus('done')"><div class="icon">✅</div><div class="lbl">Done</div></div>
+      <div class="log-btn rest" onclick="selectStatus('rest')"><div class="icon">🛋️</div><div class="lbl">Rest</div></div>
+      <div class="log-btn sick" onclick="selectStatus('sick')"><div class="icon">🤒</div><div class="lbl">Sick</div></div>
+    </div>
+    <div class="period-toggle" onclick="togglePeriod()">
+      <input type="checkbox" id="period-cb" onclick="event.stopPropagation()">
+      <div>
+        <div class="pt-label">🔴 Period day</div>
+        <div class="pt-sub">Tag as cycle day — combines with any status</div>
+      </div>
+    </div>
+    <div class="inp-row" id="inp-row">
+      <div class="inp-col">
+        <div class="inp-lbl">Actual time</div>
+        <input class="inp" type="number" id="inp-mins" placeholder="35" min="1" max="180">
+        <div class="inp-lbl-unit">minutes</div>
+      </div>
+      <div class="inp-col">
+        <div class="inp-lbl">Distance</div>
+        <input class="inp" type="number" id="inp-km" placeholder="2.5" step="0.1" min="0" max="50">
+        <div class="inp-lbl-unit">kilometers</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="mbtn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="mbtn-clear" id="mbtn-clear" onclick="clearEntry()">Clear</button>
+      <button class="mbtn-save" onclick="saveLog()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM CLEAR ALL MODAL -->
+<div id="confirm-bg" onclick="if(event.target===this)closeConfirm()">
+  <div id="confirm-modal">
+    <div class="confirm-title">Clear all entries?</div>
+    <div class="confirm-body">Permanently deletes all logged sessions, period tags, and progress data. The schedule itself stays intact.</div>
+    <div class="confirm-actions">
+      <button class="cbtn-cancel" onclick="closeConfirm()">Keep it</button>
+      <button class="cbtn-confirm" onclick="clearAll()">Yes, clear all</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════
+const STORAGE_KEY = 'herwalk_v1';
+const START_DATE  = new Date(2026, 3, 5);   // Apr 5 2026 — program start
+const EST_PERIOD  = new Date(2026, 3, 2);   // Apr 2 2026 — estimated first period
+const MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+const WEEK_TITLES = [
+  'Week 1 — Gentle Start',    'Week 2 — Energy Rising',    'Week 3 — Steady Pace',
+  'Week 4 — Period Returns',  'Week 5 — Second Wind',      'Week 6 — Peak Phase',
+  'Week 7 — Holding Strong',  'Week 8 — Period Round 3',   'Week 9 — Full Power',
+  'Week 10 — Habit Locked',   'Week 11 — Cruising',        'Week 12 — Graduation 🎉'
+];
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+// logs: { "YYYY-MM-DD": { status:"done"|"rest"|"sick", actualMins, actualKm, isPeriod } }
+// adaptOffset: number (minutes added/subtracted from future sessions)
+let S = { logs: {}, adaptOffset: 0 };
+let curWeek = 0;
+let weekManual = false;
+let modalKey = null;
+let modalStatus = null;
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+// ═══════════════════════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════════════════════
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { logs:{}, adaptOffset:0 }; }
+  catch(e) { return { logs:{}, adaptOffset:0 }; }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+
+// ═══════════════════════════════════════════════════════
+//  DATE HELPERS
+// ═══════════════════════════════════════════════════════
+function today() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+function dk(d)   { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function pd(k)   { const [y,m,d] = k.split('-').map(Number); const dt = new Date(y,m-1,d); dt.setHours(0,0,0,0); return dt; }
+
+// ═══════════════════════════════════════════════════════
+//  CYCLE ENGINE
+// ═══════════════════════════════════════════════════════
+function getPeriodDays() {
+  return Object.entries(S.logs)
+    .filter(([,v]) => v.isPeriod)
+    .map(([k]) => pd(k))
+    .sort((a,b) => a - b);
+}
+
+function getCycleStarts() {
+  const pdays = getPeriodDays();
+  if (!pdays.length) return [EST_PERIOD];
+  const starts = [pdays[0]];
+  for (let i = 1; i < pdays.length; i++) {
+    if ((pdays[i] - pdays[i-1]) / 86400000 > 5) starts.push(pdays[i]);
+  }
+  return starts;
+}
+
+function getCycleLen() {
+  const s = getCycleStarts();
+  if (s.length < 2) return 28;
+  const lens = [];
+  for (let i = 1; i < s.length; i++) lens.push(Math.round((s[i] - s[i-1]) / 86400000));
+  return Math.round(lens.reduce((a,b) => a+b, 0) / lens.length);
+}
+
+function getPhase(date) {
+  const starts = getCycleStarts();
+  const cl = getCycleLen();
+  let ref = starts[0];
+  for (const s of starts) { if (s <= date) ref = s; }
+  const cd = (Math.floor((date - ref) / 86400000) % cl) + 1;
+  const pLen = 5, fLen = Math.round((cl - pLen) * 0.3), oLen = 3;
+  if (cd <= pLen)               return 'm';
+  if (cd <= pLen + fLen)        return 'f';
+  if (cd <= pLen + fLen + oLen) return 'o';
+  return 'l';
+}
+
+const PHASE_LABELS = { m:'Period phase', f:'Follicular phase', o:'Ovulation phase', l:'Luteal phase', r:'Rest day' };
+
+// ═══════════════════════════════════════════════════════
+//  SCHEDULE GENERATION
+// ═══════════════════════════════════════════════════════
+function getWeekTarget(w) {
+  if (w === 0) return { min:15, max:25 };
+  if (w === 1) return { min:20, max:35 };
+  if (w === 2) return { min:25, max:35 };
+  if (w === 3) return { min:15, max:35 };
+  if (w <= 5)  return { min:30, max:45 };
+  if (w <= 7)  return { min:35, max:50 };
+  return { min:40, max:50 };
+}
+
+const NOTES = {
+  m: ['Easy pace · period phase','Gentle movement helps cramps','Light and steady','Period day · listen to your body','Easy does it'],
+  f: ['Energy rising · push a little','Extend the time today','Building the habit','Follicular surge · ride it','Push the duration'],
+  o: ['Peak energy · go for it!','Ovulation · unstoppable','Best you will feel all cycle','Full effort today'],
+  l: ['Steady and consistent','Moderate pace today','Luteal · still strong','Pre-period · be kind','Winding down'],
+  r: ['Recovery · let your body repair','Rest day','Recovery · important today']
+};
+
+function buildWeek(w) {
+  const days = [];
+  const ws = new Date(START_DATE);
+  ws.setDate(ws.getDate() + w * 7);
+  ws.setHours(0,0,0,0);
+  const tgt = getWeekTarget(w);
+  const restDays = new Set([2, 5]);
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(ws);
+    date.setDate(ws.getDate() + i);
+    const isRest = restDays.has(i);
+    let baseMins = 0;
+    if (!isRest) {
+      const t = tgt.min + Math.round((tgt.max - tgt.min) * (i / 6));
+      baseMins = Math.min(50, Math.max(tgt.min, t));
+    }
+    const phase = isRest ? 'r' : getPhase(date);
+    const noteArr = NOTES[phase] || NOTES.f;
+    days.push({
+      w, date, isRest, baseMins,
+      task: isRest ? 'Rest day' : `${baseMins} min walk`,
+      note: noteArr[i % noteArr.length]
+    });
+  }
+  return days;
+}
+
+function buildSchedule() {
+  const todayDt = today();
+  const diffDays = Math.floor((todayDt - START_DATE) / 86400000);
+  const curWk = Math.max(0, Math.floor(diffDays / 7));
+  const totalWeeks = Math.max(curWk + 4, 16);
+  const weeks = [];
+  for (let w = 0; w < totalWeeks; w++) weeks.push(buildWeek(w));
+  return weeks;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ADAPTIVE ENGINE
+// ═══════════════════════════════════════════════════════
+function getEffStatus(day) {
+  const log = S.logs[dk(day.date)];
+  if (log && log.status) return log.status;
+  if (!day.isRest && day.date < today() && !log) return 'miss';
+  return null;
+}
+
+function computePerfRatio() {
+  const todayDt = today();
+  const sessions = buildSchedule().flat()
+    .filter(d => !d.isRest && d.date < todayDt)
+    .slice(-7);
+  if (sessions.length < 3) return 1;
+  const ratios = sessions.map(d => {
+    const log = S.logs[dk(d.date)];
+    const es = getEffStatus(d);
+    if (es === 'done' && log && log.actualMins) return log.actualMins / d.baseMins;
+    if (es === 'done') return 1;
+    if (es === 'sick')  return null;
+    return 0;
+  }).filter(r => r !== null);
+  if (!ratios.length) return 1;
+  return ratios.reduce((a,b) => a+b, 0) / ratios.length;
+}
+
+function computeRecentMissed() {
+  const todayDt = today();
+  return buildSchedule().flat()
+    .filter(d => !d.isRest && d.date < todayDt)
+    .slice(-5)
+    .filter(d => ['rest','sick','miss'].includes(getEffStatus(d)))
+    .length;
+}
+
+function computeOffset() {
+  const ratio = computePerfRatio();
+  const missed = computeRecentMissed();
+  const sickTotal = Object.values(S.logs).filter(v => v.status === 'sick').length;
+  if (missed >= 2 || ratio <= 0.75 || sickTotal >= 3) return Math.max(-10, S.adaptOffset - 5);
+  if (ratio >= 1.2 && missed === 0)                   return Math.min(10,  S.adaptOffset + 5);
+  return S.adaptOffset;
+}
+
+function applyOffset(day, offset) {
+  if (day.isRest || day.baseMins < 25) return day.baseMins;
+  return Math.min(60, Math.max(10, day.baseMins + offset));
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATS
+// ═══════════════════════════════════════════════════════
+function computeStats() {
+  const todayDt = today();
+  const flat = buildSchedule().flat();
+  let done = 0, mins = 0, km = 0, sick = 0, streak = 0;
+  let streaking = true;
+
+  const active = flat.filter(d => !d.isRest && d.date <= todayDt);
+  for (const d of [...active].sort((a,b) => b.date - a.date)) {
+    const es = getEffStatus(d);
+    if (es === 'done') { if (streaking) streak++; }
+    else if (es !== 'miss') streaking = false;
+  }
+  for (const d of active) {
+    const es = getEffStatus(d);
+    const log = S.logs[dk(d.date)];
+    if (es === 'done') { done++; mins += log?.actualMins || d.baseMins; km += log?.actualKm || 0; }
+    if (es === 'sick') sick++;
+  }
+  return { done, mins: Math.round(mins), km: km.toFixed(1), sick, streak };
+}
+
+// ═══════════════════════════════════════════════════════
+//  WEEK TITLE / DESC
+// ═══════════════════════════════════════════════════════
+function weekTitle(w) {
+  if (w < WEEK_TITLES.length) return WEEK_TITLES[w];
+  const cycle = Math.floor((w - 12) / 4) + 2;
+  const phases = ['Building Strength', 'Peak Week', 'Steady Flow', 'Recovery'];
+  return `Cycle ${cycle} · ${phases[(w - 12) % 4]}`;
+}
+function weekDesc(w) {
+  const t = getWeekTarget(w);
+  return `5 active days · ${t.min}–${t.max} min target`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — SCHEDULE
+// ═══════════════════════════════════════════════════════
+function renderSchedule(weeks) {
+  const offset = computeOffset();
+  if (offset !== S.adaptOffset) { S.adaptOffset = offset; saveState(); }
+
+  const ratio  = computePerfRatio();
+  const missed = computeRecentMissed();
+  const stats  = computeStats();
+
+  // Streak chip
+  document.getElementById('streak').textContent =
+    stats.streak > 0 ? `🔥 ${stats.streak} day streak` : "✨ Let's go!";
+
+  // Adapt banner
+  const ab = document.getElementById('abanner');
+  if (ratio >= 1.2 && offset > 0 && missed === 0) {
+    ab.className = 'abanner show up';
+    ab.innerHTML = `<strong>📈 Plan leveled up</strong>Sessions bumped +${offset} min — you're consistently exceeding targets!`;
+  } else if (offset < 0 || missed >= 2) {
+    ab.className = 'abanner show down';
+    ab.innerHTML = `<strong>🤲 Plan eased back</strong>Reduced by ${Math.abs(offset)} min to match your current pace. Quality over quantity.`;
+  } else {
+    ab.className = 'abanner';
+  }
+
+  const week = weeks[curWeek];
+  const active = week.filter(d => !d.isRest);
+  const doneCnt = active.filter(d => getEffStatus(d) === 'done').length;
+  const pct = active.length ? Math.round((doneCnt / active.length) * 100) : 0;
+
+  document.getElementById('wk-title').textContent = weekTitle(curWeek);
+  document.getElementById('wk-desc').textContent  = weekDesc(curWeek);
+  document.getElementById('wk-pct').textContent   = pct > 0 ? `${pct}% complete` : '';
+  document.getElementById('wk-bar').style.width   = `${pct}%`;
+
+  // Week nav
+  document.getElementById('wk-label').textContent = weekTitle(curWeek);
+  const hasDone = week.some(d => getEffStatus(d) === 'done');
+  const doneSub = doneCnt > 0 ? `${doneCnt}/${active.length} done` : '';
+  document.getElementById('wk-sub').innerHTML =
+    (hasDone ? '<span class="wksub-dot"></span> ' : '') +
+    `Week ${curWeek + 1} of ${weeks.length}` +
+    (doneSub ? ` · ${doneSub}` : '');
+  document.getElementById('wk-prev').disabled = curWeek === 0;
+  document.getElementById('wk-next').disabled = curWeek >= weeks.length - 1;
+
+  const todayDt = today();
+  const list = document.getElementById('dlist');
+  list.innerHTML = '';
+
+  week.forEach((day, idx) => {
+    const key   = dk(day.date);
+    const log   = S.logs[key];
+    const es    = getEffStatus(day);
+    const isToday = day.date.getTime() === todayDt.getTime();
+    const isFuture = day.date > todayDt;
+    const phase = day.isRest ? 'r' : getPhase(day.date);
+    const effMins = applyOffset(day, offset);
+    const adapted = effMins !== day.baseMins && !day.isRest && !es && isFuture;
+
+    // Phase class + status class
+    let phCls = `p-${phase}`;
+    if (log?.isPeriod && !day.isRest) phCls = 'p-m';
+    const stCls = es ? `s-${es}` : '';
+
+    // Phase label
+    let phLabel;
+    if      (es === 'done') phLabel = '✓ Completed';
+    else if (es === 'rest') phLabel = 'Rest day';
+    else if (es === 'sick') phLabel = '🤒 Sick day';
+    else if (es === 'miss') phLabel = 'Not logged';
+    else if (log?.isPeriod && !day.isRest) phLabel = `🔴 Period · ${PHASE_LABELS[phase]}`;
+    else phLabel = PHASE_LABELS[phase];
+
+    // Mins display
+    const showMins = day.isRest || ['rest','sick','miss'].includes(es) ? '—' : effMins;
+    const showMinLbl = (!day.isRest && !['rest','sick','miss'].includes(es)) ? 'min' : '';
+
+    // Actual line
+    let actualLine = '';
+    if (es === 'done' && log && (log.actualMins || log.actualKm)) {
+      const parts = [];
+      if (log.actualMins) parts.push(`${log.actualMins} min`);
+      if (log.actualKm)   parts.push(`${log.actualKm} km`);
+      actualLine = `<div class="dcard-actual">✓ ${parts.join(' · ')}</div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = `dcard ${phCls} ${stCls} ${isToday ? 'today' : ''} anim`;
+    card.style.animationDelay = `${idx * 35}ms`;
+    card.onclick = () => openModal(key, day, phase);
+    card.innerHTML = `
+      <div class="dcard-inner">
+        <div class="dcard-stripe"></div>
+        <div class="dcard-body">
+          <div class="dcard-date">
+            <div class="dcard-dow">${DAYS[day.date.getDay()]}</div>
+            <div class="dcard-day">${day.date.getDate()}</div>
+            <div class="dcard-mon">${MONTHS[day.date.getMonth()]}</div>
+          </div>
+          <div class="dcard-info">
+            <div class="dcard-phase">${phLabel}</div>
+            <div class="dcard-task">${day.task}</div>
+            <div class="dcard-note">${day.note}</div>
+            ${actualLine}
+          </div>
+          <div class="dcard-right">
+            ${isToday ? '<div class="dcard-today">Today</div>' : ''}
+            ${adapted ? '<div class="dcard-adj">Adjusted</div>' : ''}
+            <div class="dcard-mins">${showMins}</div>
+            ${showMinLbl ? `<div class="dcard-minlbl">${showMinLbl}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — STATS
+// ═══════════════════════════════════════════════════════
+function renderStats() {
+  const { done, mins, km, sick } = computeStats();
+  document.getElementById('s-done').textContent = done;
+  document.getElementById('s-mins').textContent = mins;
+  document.getElementById('s-km').textContent   = km;
+  document.getElementById('s-sick').textContent = sick;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — PROGRESS
+// ═══════════════════════════════════════════════════════
+function renderProgress(weeks) {
+  const todayDt = today();
+  const flat = weeks.flat();
+
+  // Bar chart
+  const doneSessions = flat.filter(d => !d.isRest && getEffStatus(d) === 'done').slice(-14);
+  const maxMins = Math.max(60, ...doneSessions.map(d => Math.max(d.baseMins, S.logs[dk(d.date)]?.actualMins || 0)));
+  const chart = document.getElementById('bar-chart');
+  chart.innerHTML = '';
+  if (!doneSessions.length) {
+    chart.innerHTML = '<div style="width:100%;text-align:center;color:var(--faint);font-size:12px;padding-top:30px;font-weight:500;">Complete sessions to see your chart ✨</div>';
+  } else {
+    doneSessions.forEach(day => {
+      const tPct = Math.round((day.baseMins / maxMins) * 100);
+      const aPct = Math.round(((S.logs[dk(day.date)]?.actualMins || 0) / maxMins) * 100);
+      const col = document.createElement('div');
+      col.className = 'bcol';
+      col.innerHTML = `<div class="bwrap"><div class="bar t" style="height:${tPct}%"></div><div class="bar a" style="height:${aPct}%"></div></div><div class="blbl">${day.date.getDate()}</div>`;
+      chart.appendChild(col);
+    });
+  }
+
+  // Week grids
+  const grids = document.getElementById('wk-grids');
+  grids.innerHTML = '';
+  weeks.forEach((week, wi) => {
+    const active = week.filter(d => !d.isRest);
+    const doneCnt  = active.filter(d => getEffStatus(d) === 'done').length;
+    const missedCnt = active.filter(d => ['rest','sick','miss'].includes(getEffStatus(d))).length;
+    const pct = active.length ? Math.round((doneCnt / active.length) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'wk-grid';
+    const daysHTML = week.map(day => {
+      const es = getEffStatus(day);
+      const log = S.logs[dk(day.date)];
+      const isFuture = day.date > todayDt;
+      let cls = 'wkd';
+      if      (day.isRest)      cls += ' rest';
+      else if (es === 'done')   cls += ' done';
+      else if (es === 'rest')   cls += ' rested';
+      else if (es === 'sick')   cls += ' sick';
+      else if (es === 'miss')   cls += ' miss';
+      else if (log?.isPeriod)   cls += ' period';
+      else                      cls += isFuture ? ' empty' : ' miss';
+      return `<div class="${cls}">${day.isRest ? '–' : day.date.getDate()}</div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="wk-grid-hdr">
+        <div class="wk-grid-title">${weekTitle(wi)}</div>
+        <div class="wk-grid-stat">${doneCnt}/${active.length} · ${pct}%${missedCnt > 0 ? ` · ${missedCnt} missed` : ''}</div>
+      </div>
+      <div class="wk-days">${daysHTML}</div>`;
+    grids.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — CYCLE INFO
+// ═══════════════════════════════════════════════════════
+function renderCycle() {
+  const pdays = getPeriodDays();
+  const starts = getCycleStarts();
+  const cl = getCycleLen();
+  const el = document.getElementById('cycle-status');
+  if (!pdays.length) {
+    el.innerHTML = '<h3>🔴 Cycle not yet calibrated</h3><p>Tag period days using the log button to help the app learn your real cycle. Until then it uses the estimated April 2 start.</p>';
+  } else {
+    el.innerHTML = `<h3>✅ Cycle calibrated from your tags</h3><p>Based on <strong>${pdays.length} period day${pdays.length > 1 ? 's' : ''}</strong> tagged. Phase colors are adjusted to your real rhythm.</p><p style="margin-top:6px"><strong>Estimated cycle: ${cl} days · ${starts.length} cycle${starts.length > 1 ? 's' : ''} tracked</strong></p>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — CALENDAR
+// ═══════════════════════════════════════════════════════
+function renderCalendar(weeks) {
+  const todayDt = today();
+  const flat = weeks.flat();
+  const lookup = {};
+  flat.forEach(d => { lookup[dk(d.date)] = d; });
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const monthName = firstDay.toLocaleString('default', { month: 'long' });
+
+  document.getElementById('cal-month').textContent = `${monthName} ${calYear}`;
+  const firstPhase = getPhase(firstDay);
+  document.getElementById('cal-msub').textContent = `Starts in ${PHASE_LABELS[firstPhase]}`;
+
+  // Monthly stats
+  let mDone = 0, mMins = 0, mKm = 0, mSick = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = dk(new Date(calYear, calMonth, d));
+    const entry = lookup[key];
+    if (!entry || entry.isRest) continue;
+    const log = S.logs[key];
+    const es = getEffStatus(entry);
+    if (es === 'done') { mDone++; mMins += log?.actualMins || entry.baseMins; mKm += log?.actualKm || 0; }
+    if (es === 'sick') mSick++;
+  }
+  document.getElementById('cal-stats').innerHTML = `
+    <div class="cal-stat"><div class="cal-stat-n green">${mDone}</div><div class="cal-stat-l">Done</div></div>
+    <div class="cal-stat"><div class="cal-stat-n">${Math.round(mMins)}</div><div class="cal-stat-l">Minutes</div></div>
+    <div class="cal-stat"><div class="cal-stat-n amber">${mKm.toFixed(1)}</div><div class="cal-stat-l">km</div></div>
+    <div class="cal-stat"><div class="cal-stat-n red">${mSick}</div><div class="cal-stat-l">Sick</div></div>`;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  const startDow = firstDay.getDay();
+  for (let i = 0; i < startDow; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'ccell empty';
+    grid.appendChild(empty);
+  }
+
+  const offset = S.adaptOffset;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(calYear, calMonth, d);
+    date.setHours(0,0,0,0);
+    const key   = dk(date);
+    const entry = lookup[key];
+    const log   = S.logs[key];
+    const isToday  = date.getTime() === todayDt.getTime();
+    const isFuture = date > todayDt;
+
+    let phCls = 'p-u', stCls = '', icon = '', minsText = '';
+
+    if (entry) {
+      const phase = entry.isRest ? 'r' : getPhase(date);
+      phCls = `p-${phase}`;
+      if (log?.isPeriod && !entry.isRest) phCls = 'p-m';
+      const es = getEffStatus(entry);
+      const effMins = applyOffset(entry, offset);
+
+      if      (es === 'done') { stCls = 's-done'; icon = '✅'; const am = log?.actualMins || entry.baseMins; minsText = am + 'm' + (log?.actualKm ? ` · ${log.actualKm}k` : ''); }
+      else if (es === 'sick') { stCls = 's-sick'; icon = '🤒'; minsText = 'sick'; }
+      else if (es === 'rest') { stCls = 's-rest'; icon = '🛋️'; minsText = 'rest'; }
+      else if (es === 'miss') { icon = '○'; }
+      else if (entry.isRest)  { icon = '—'; }
+      else { minsText = `${effMins}m`; }
+    }
+
+    const cell = document.createElement('div');
+    cell.className = `ccell ${phCls} ${stCls} ${isToday ? 'is-today' : ''} ${isFuture && !isToday ? 'future' : ''}`.trim();
+    cell.innerHTML = `
+      ${log?.isPeriod ? '<div class="period-pip"></div>' : ''}
+      <div class="ccell-num">${d}</div>
+      ${icon ? `<div class="ccell-icon">${icon}</div>` : ''}
+      ${minsText ? `<div class="ccell-mins">${minsText}</div>` : ''}`;
+
+    if (entry) {
+      const phase = entry.isRest ? 'r' : getPhase(date);
+      cell.onclick = () => openModal(key, entry, phase);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════
+function switchTab(btn) {
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`v-${tab}`).classList.add('active');
+  btn.classList.add('active');
+
+  // Week nav only on schedule
+  document.getElementById('wknav').style.display = tab === 'schedule' ? 'block' : 'none';
+
+  document.getElementById('scroll').scrollTo({ top:0, behavior:'smooth' });
+
+  const weeks = buildSchedule();
+  if (tab === 'schedule') renderSchedule(weeks);
+  if (tab === 'calendar') renderCalendar(weeks);
+  if (tab === 'stats')    renderStats();
+  if (tab === 'progress') renderProgress(weeks);
+  if (tab === 'cycle')    renderCycle();
+}
+
+// ═══════════════════════════════════════════════════════
+//  WEEK NAVIGATION
+// ═══════════════════════════════════════════════════════
+function navWeek(dir) {
+  const weeks = buildSchedule();
+  curWeek = Math.max(0, Math.min(curWeek + dir, weeks.length - 1));
+  weekManual = true;
+  renderSchedule(weeks);
+}
+
+// ═══════════════════════════════════════════════════════
+//  CALENDAR NAVIGATION
+// ═══════════════════════════════════════════════════════
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderCalendar(buildSchedule());
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOG MODAL
+// ═══════════════════════════════════════════════════════
+function openModal(key, day, phase) {
+  modalKey    = key;
+  modalStatus = null;
+  const log = S.logs[key];
+
+  // Pre-select existing status
+  document.querySelectorAll('.log-btn').forEach(b => b.classList.remove('sel'));
+  if (log?.status) {
+    selectStatus(log.status);
+  }
+
+  // Period checkbox
+  const cb = document.getElementById('period-cb');
+  cb.checked = !!(log?.isPeriod);
+
+  document.getElementById('modal-date').textContent =
+    `${DAYS[new Date(day.date).getDay()]}, ${MONTHS[new Date(day.date).getMonth()]} ${new Date(day.date).getDate()}`;
+  document.getElementById('modal-phase').textContent = PHASE_LABELS[phase] || '';
+  document.getElementById('inp-mins').value = log?.actualMins || '';
+  document.getElementById('inp-km').value   = log?.actualKm   || '';
+
+  // Show clear button if already logged
+  document.getElementById('mbtn-clear').style.display =
+    (log?.status || log?.isPeriod) ? 'block' : 'none';
+
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function selectStatus(status) {
+  modalStatus = status;
+  document.querySelectorAll('.log-btn').forEach(b => b.classList.remove('sel'));
+  document.querySelector(`.log-btn.${status}`)?.classList.add('sel');
+  document.getElementById('inp-row').classList.toggle('show', status === 'done');
+}
+
+function togglePeriod() {
+  const cb = document.getElementById('period-cb');
+  cb.checked = !cb.checked;
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+  modalKey = null;
+  modalStatus = null;
+  document.querySelectorAll('.log-btn').forEach(b => b.classList.remove('sel'));
+  document.getElementById('inp-row').classList.remove('show');
+  document.getElementById('period-cb').checked = false;
+}
+
+function saveLog() {
+  if (!modalKey) return;
+  const existing = S.logs[modalKey] || {};
+  const isPeriod = document.getElementById('period-cb').checked;
+  const mins = parseFloat(document.getElementById('inp-mins').value) || null;
+  const km   = parseFloat(document.getElementById('inp-km').value)   || null;
+
+  if (modalStatus === 'done') {
+    S.logs[modalKey] = { ...existing, status:'done', actualMins:mins, actualKm:km, isPeriod };
+  } else if (modalStatus === 'rest') {
+    S.logs[modalKey] = { ...existing, status:'rest', isPeriod };
+  } else if (modalStatus === 'sick') {
+    S.logs[modalKey] = { ...existing, status:'sick', isPeriod };
+  } else {
+    // Only period tag, no status
+    S.logs[modalKey] = { ...existing, isPeriod };
+  }
+
+  saveState();
+  closeModal();
+  renderAll();
+}
+
+function clearEntry() {
+  if (!modalKey) return;
+  delete S.logs[modalKey];
+  saveState();
+  closeModal();
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLEAR ALL
+// ═══════════════════════════════════════════════════════
+function openConfirm()  { document.getElementById('confirm-bg').classList.add('open'); }
+function closeConfirm() { document.getElementById('confirm-bg').classList.remove('open'); }
+function clearAll() {
+  S = { logs:{}, adaptOffset:0 };
+  saveState();
+  closeConfirm();
+  weekManual = false;
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MASTER RENDER
+// ═══════════════════════════════════════════════════════
+function renderAll() {
+  const weeks = buildSchedule();
+
+  // Auto-scroll to current week on first load
+  if (!weekManual) {
+    const todayDt = today();
+    const diffDays = Math.floor((todayDt - START_DATE) / 86400000);
+    curWeek = Math.max(0, Math.min(Math.floor(diffDays / 7), weeks.length - 1));
+  }
+  curWeek = Math.max(0, Math.min(curWeek, weeks.length - 1));
+
+  // Render whichever tab is active
+  const activeTab = document.querySelector('.tbtn.active')?.dataset.tab || 'schedule';
+  if (activeTab === 'schedule') renderSchedule(weeks);
+  if (activeTab === 'calendar') renderCalendar(weeks);
+  if (activeTab === 'stats')    renderStats();
+  if (activeTab === 'progress') renderProgress(weeks);
+  if (activeTab === 'cycle')    renderCycle();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+S = loadState();
+renderAll();
+</script>
+</body>
+</html>
