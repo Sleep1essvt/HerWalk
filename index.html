@@ -329,10 +329,15 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
 .rpill strong { display:block; font-size:12px; }
 .rpill span { display:block; font-size:10px; color:var(--muted); margin-top:3px; }
 .small-help { font-size:11px; color:var(--muted); line-height:1.55; margin-top:8px; }
-#today-card-title { font-size:20px; font-family:'DM Serif Display',serif; margin-bottom:6px; }
-#today-card-body { font-size:12px; color:var(--muted); line-height:1.6; }
-.summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
-.summary-row .cmeta { background:var(--ground); border:1px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center; }
+#today-card { background:linear-gradient(180deg, rgba(253,252,248,0.98), rgba(255,255,255,1)); }
+#today-card-title { font-size:20px; font-family:'DM Serif Display',serif; margin-bottom:8px; letter-spacing:.01em; }
+#today-card-body { font-size:12.5px; color:#6f6a62; line-height:1.72; }
+.summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+.summary-row .cmeta { background:linear-gradient(180deg, #fff, #fbfaf7); border:1px solid rgba(0,0,0,.07); border-radius:14px; padding:12px 10px 11px; min-height:88px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 1px 8px rgba(0,0,0,.03); }
+.cmeta-main, .cmeta-phase { font-family:'DM Serif Display',serif; font-size:26px; line-height:1.08; font-weight:400; color:var(--ink); letter-spacing:0; }
+.cmeta-main.num, .cmeta-main.text, .cmeta-phase { font-size:26px; font-weight:400; }
+.cmeta-sub { margin-top:5px; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; font-weight:600; }
+.cmeta-note { margin-top:4px; font-size:10px; color:#8a847b; line-height:1.25; }
 @media(max-width:520px){
   .opt-grid,.readiness-pills,.setup-row,.summary-row{grid-template-columns:1fr;}
 }
@@ -603,12 +608,13 @@ let selectedReadiness = null;
 let activeSetupStep = 0;
 
 const DEFAULT_STATE = {
-  version: 2,
+  version: 4,
   profile: null,
   logs: {},
   weeklyAdapt: {},
   dailyState: {},
-  meta: { migratedFromV1:false, lastOpened:null, legacyBackup:null }
+  messageMemory: { recent: [], recentFull: [] },
+  meta: { migratedFromV1:false, lastOpened:null, legacyBackup:null, todayMessage:null }
 };
 
 let S = structuredClone(DEFAULT_STATE);
@@ -623,6 +629,213 @@ function fmtDate(d){ return `${MONTHS[d.getMonth()]} ${d.getDate()}`; }
 function daysBetween(a,b){ return Math.round((weekStart(b)-weekStart(a))/86400000); }
 function getWeekIndex(date){ return Math.max(0, Math.floor((weekStart(date) - weekStart(START_DATE))/86400000/7)); }
 function weekKey(w){ return `w${w}`; }
+function weekDateRange(w){ const s = weekStart(START_DATE); s.setDate(s.getDate()+w*7); const e = new Date(s); e.setDate(e.getDate()+6); e.setHours(0,0,0,0); return { start:s, end:e }; }
+function getPlanDay(date){ const week = buildWeek(getWeekIndex(date)); return week.find(d => dk(d.date) === dk(date)) || null; }
+function avg(nums){ return nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : 0; }
+
+function titleCase(s){ return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+function softConfidenceLabel(conf){
+  return conf === 'high' ? 'Cycle estimate strong' : conf === 'med' ? 'Cycle estimate settling' : 'Cycle still learning';
+}
+function pickFromPool(pool, used, recent, maxRecent=6){
+  const rec = new Set((recent || []).slice(-maxRecent));
+  let options = pool.filter(p => !rec.has(p.id));
+  if(!options.length) options = pool.filter(p => !used.includes(p.id));
+  if(!options.length) options = pool.slice();
+  options.sort((a,b) => (b.weight||1) - (a.weight||1));
+  const topWeight = options[0]?.weight || 1;
+  const shortlist = options.filter(o => (o.weight||1) >= topWeight - 0.25);
+  return shortlist[Math.floor(Math.random() * shortlist.length)] || options[0] || null;
+}
+function rememberMessageBits(parts, fullText){
+  S.messageMemory = S.messageMemory || { recent: [], recentFull: [] };
+  const recent = S.messageMemory.recent || [];
+  const full = S.messageMemory.recentFull || [];
+  recent.push(...parts.filter(Boolean));
+  while(recent.length > 18) recent.shift();
+  if(fullText){
+    full.push(fullText);
+    while(full.length > 10) full.shift();
+  }
+  S.messageMemory.recent = recent;
+  S.messageMemory.recentFull = full;
+}
+function classifyTodayMessage(todayEntry, readiness, info, rec, trendAdj, momentum){
+  if(todayEntry.isRest || readiness === 'sick') return 'recovery';
+  if(readiness === 'exhausted' || readiness === 'low') return 'gentle';
+  if(momentum >= 3) return 'hype';
+  if(momentum > 0 || trendAdj > 0) return 'proud';
+  if(getProfile().cycleAware && getPhase(todayEntry.date) === 'm') return 'tender';
+  return 'steady';
+}
+function buildTodayMessage(todayEntry, ctx){
+  const { name, readiness, rec, trendAdj, momentum, info } = ctx;
+  const family = classifyTodayMessage(todayEntry, readiness, info, rec, trendAdj, momentum);
+  const used = [];
+  const recent = S.messageMemory?.recent || [];
+  const pools = {
+    recovery: {
+      opener:[
+        {id:'rec-op-1', text:`Easy day, ${name}.`, weight:1.2},
+        {id:'rec-op-2', text:`Gentle day today, ${name}.`, weight:1.1},
+        {id:'rec-op-3', text:`Today gets to be soft.`, weight:1},
+      ],
+      plan:[
+        {id:'rec-pl-1', text:`Recovery is the plan today.`, weight:1.2},
+        {id:'rec-pl-2', text:`Today is a rest call, not a push day.`, weight:1},
+        {id:'rec-pl-3', text:`No heroics today. Rest still counts.`, weight:1},
+      ],
+      reason:[
+        {id:'rec-rs-1', text: readiness === 'sick' ? `You said you feel sick, so the smartest move is to protect your energy and reset.` : `The plan is giving you room to recover instead of asking for extra effort.` , weight:1.2},
+        {id:'rec-rs-2', text: `This keeps your rhythm kind to your body instead of forcing it.`, weight:1},
+        {id:'rec-rs-3', text: `A recovery day now is better than digging yourself into a hole tomorrow.`, weight:0.9},
+      ],
+      close:[
+        {id:'rec-cl-1', text:`Rest is still progress.`, weight:1},
+        {id:'rec-cl-2', text:`You’re allowed to keep it gentle.`, weight:1},
+      ]
+    },
+    gentle: {
+      opener:[
+        {id:'gen-op-1', text:`We’re keeping today gentle, ${name}.`, weight:1.2},
+        {id:'gen-op-2', text:`Today can stay simple.`, weight:1.1},
+        {id:'gen-op-3', text:`You don’t need to force anything today.`, weight:1},
+      ],
+      plan:[
+        {id:'gen-pl-1', text:`A lighter ${rec}-minute walk is enough today.`, weight:1.2},
+        {id:'gen-pl-2', text:`Let’s keep today to ${rec} minutes.`, weight:1},
+        {id:'gen-pl-3', text:`${rec} minutes is plenty for today.`, weight:0.95},
+      ],
+      reason:[
+        {id:'gen-rs-1', text:`You said your energy feels ${readiness}, so the goal is to keep your rhythm without draining yourself.`, weight:1.2},
+        {id:'gen-rs-2', text:`This is one of those days where consistency matters more than intensity.`, weight:1},
+        {id:'gen-rs-3', text:`A smaller win still counts, especially when your energy isn’t all there.`, weight:1},
+      ],
+      close:[
+        {id:'gen-cl-1', text:`Steady still wins.`, weight:1},
+        {id:'gen-cl-2', text:`A calm win is still a win.`, weight:1},
+      ]
+    },
+    hype: {
+      opener:[
+        {id:'hyp-op-1', text:`Okay, you’ve been kind of cracked lately.`, weight:1.2},
+        {id:'hyp-op-2', text:`You’ve been on a nice run lately, ${name}.`, weight:1.1},
+        {id:'hyp-op-3', text:`You’ve been quietly crushing it.`, weight:1},
+      ],
+      plan:[
+        {id:'hyp-pl-1', text:`So today gets a ${rec}-minute target.`, weight:1.2},
+        {id:'hyp-pl-2', text:`We’re nudging today up to ${rec} minutes.`, weight:1.1},
+        {id:'hyp-pl-3', text:`${rec} minutes today. You earned the bump.`, weight:1},
+      ],
+      reason:[
+        {id:'hyp-rs-1', text:`Recent strong walks added a little momentum bump, so the plan is meeting you where you actually are now.`, weight:1.2},
+        {id:'hyp-rs-2', text:`You’ve been outperforming the plan, so this is the app finally catching up instead of snoozing on you.`, weight:1.1},
+        {id:'hyp-rs-3', text:`This is still a controlled increase, not chaos. Just enough to keep the challenge honest.`, weight:1},
+      ],
+      close:[
+        {id:'hyp-cl-1', text:`Keep cooking.`, weight:1},
+        {id:'hyp-cl-2', text:`You’ve got room for this.`, weight:1},
+      ]
+    },
+    proud: {
+      opener:[
+        {id:'prd-op-1', text:`You’ve been doing well lately.`, weight:1.2},
+        {id:'prd-op-2', text:`You’re in a good rhythm right now, ${name}.`, weight:1.1},
+        {id:'prd-op-3', text:`This is a good place to keep building from.`, weight:1},
+      ],
+      plan:[
+        {id:'prd-pl-1', text:`Today’s plan is ${rec} minutes.`, weight:1.2},
+        {id:'prd-pl-2', text:`We’re aiming for ${rec} minutes today.`, weight:1.1},
+        {id:'prd-pl-3', text:`${rec} minutes is the move today.`, weight:1},
+      ],
+      reason:[
+        {id:'prd-rs-1', text:`Your recent energy trend has been solid, so there’s room to keep things a little stronger.`, weight:1.2},
+        {id:'prd-rs-2', text:`The plan is staying supportive, but it doesn’t need to baby you today.`, weight:1},
+        {id:'prd-rs-3', text:`This keeps your progress moving without jumping too far ahead.`, weight:1},
+      ],
+      close:[
+        {id:'prd-cl-1', text:`You’re building something real here.`, weight:1},
+        {id:'prd-cl-2', text:`Nice and steady.`, weight:1},
+      ]
+    },
+    tender: {
+      opener:[
+        {id:'ten-op-1', text:`Today gets to feel softer, ${name}.`, weight:1.2},
+        {id:'ten-op-2', text:`We’re being a little kinder with today’s plan.`, weight:1.1},
+        {id:'ten-op-3', text:`Your body gets a gentler pace today.`, weight:1},
+      ],
+      plan:[
+        {id:'ten-pl-1', text:`${rec} minutes is enough for today.`, weight:1.2},
+        {id:'ten-pl-2', text:`We’re keeping today to ${rec} minutes.`, weight:1.1},
+        {id:'ten-pl-3', text:`A light ${rec}-minute walk is the plan today.`, weight:1},
+      ],
+      reason:[
+        {id:'ten-rs-1', text:`This looks like a lower-energy part of your cycle, so the plan is staying supportive instead of demanding.`, weight:1.2},
+        {id:'ten-rs-2', text:`The goal today is to keep your rhythm, not to prove anything.`, weight:1},
+        {id:'ten-rs-3', text:`A lighter day still helps, especially when your cycle might be asking for a little more softness.`, weight:1},
+      ],
+      close:[
+        {id:'ten-cl-1', text:`You’re still doing enough.`, weight:1},
+        {id:'ten-cl-2', text:`Kind counts too.`, weight:1},
+      ]
+    },
+    steady: {
+      opener:[
+        {id:'std-op-1', text:`You’re in a good steady spot today.`, weight:1.2},
+        {id:'std-op-2', text:`Today looks nicely manageable.`, weight:1.1},
+        {id:'std-op-3', text:`Nothing dramatic today, and that’s good.`, weight:1},
+      ],
+      plan:[
+        {id:'std-pl-1', text:`Today’s plan is ${rec} minutes.`, weight:1.2},
+        {id:'std-pl-2', text:`We’re keeping today at ${rec} minutes.`, weight:1.1},
+        {id:'std-pl-3', text:`${rec} minutes is enough for today.`, weight:1},
+      ],
+      reason:[
+        {id:'std-rs-1', text: readiness ? `You said you feel ${readiness}, so there’s no reason to overcomplicate the day.` : `No readiness check yet, so this starts from the base recommendation and keeps things simple.`, weight:1.2},
+        {id:'std-rs-2', text:`This is a good pace for staying consistent without turning it into homework.`, weight:1.1},
+        {id:'std-rs-3', text:`Steady days are underrated. They’re usually the ones that make the habit stick.`, weight:1},
+      ],
+      close:[
+        {id:'std-cl-1', text:`Just enough to keep the rhythm going.`, weight:1},
+        {id:'std-cl-2', text:`Steady works.`, weight:1},
+      ]
+    },
+  };
+  const fam = pools[family] || pools.steady;
+  const op = pickFromPool(fam.opener, used, recent); used.push(op?.id);
+  const pl = pickFromPool(fam.plan, used, recent); used.push(pl?.id);
+  const rs = pickFromPool(fam.reason, used, recent); used.push(rs?.id);
+  const cl = pickFromPool(fam.close, used, recent); used.push(cl?.id);
+  let text = [op?.text, pl?.text, rs?.text, cl?.text].filter(Boolean).join(' ');
+  const recentFull = S.messageMemory?.recentFull || [];
+  if(recentFull.includes(text)){
+    const alt = fam.close.find(x => x.id !== cl?.id) || fam.reason.find(x => x.id !== rs?.id);
+    if(alt) text = [op?.text, pl?.text, rs?.id===alt.id? null: rs?.text, alt.text].filter(Boolean).join(' ');
+  }
+  return { text, usedIds: used.filter(Boolean) };
+}
+function getTodayMessage(todayEntry, ctx){
+  const key = dk(todayEntry.date);
+  const fp = JSON.stringify({
+    rec: ctx.rec,
+    readiness: ctx.readiness || null,
+    trendAdj: ctx.trendAdj,
+    momentum: ctx.momentum,
+    phase: getProfile().cycleAware ? getPhase(todayEntry.date) : 'std',
+    confidence: ctx.info.confidence,
+    isRest: !!todayEntry.isRest,
+    sick: ctx.readiness === 'sick'
+  });
+  if(S.meta?.todayMessage && S.meta.todayMessage.key === key && S.meta.todayMessage.fp === fp && S.meta.todayMessage.text){
+    return S.meta.todayMessage.text;
+  }
+  const built = buildTodayMessage(todayEntry, ctx);
+  S.meta = S.meta || {};
+  S.meta.todayMessage = { key, fp, text: built.text };
+  rememberMessageBits(built.usedIds, built.text);
+  saveState();
+  return built.text;
+}
 
 function loadState() {
   try {
@@ -634,6 +847,7 @@ function loadState() {
         logs: v2.logs || {},
         weeklyAdapt: v2.weeklyAdapt || {},
         dailyState: v2.dailyState || {},
+        messageMemory: { ...deepClone(DEFAULT_STATE.messageMemory), ...(v2.messageMemory||{}) },
         meta: { ...DEFAULT_STATE.meta, ...(v2.meta||{}) }
       };
     }
@@ -806,6 +1020,65 @@ function getProfile(){
   };
 }
 
+function readinessScore(readiness){
+  return ({ exhausted:-2, low:-1, okay:0, good:1, great:2, sick:-3 })[readiness] ?? 0;
+}
+function getRecentReadiness(date, span=4){
+  const vals = [];
+  for(let i=1;i<=span;i++){
+    const dt = new Date(date);
+    dt.setDate(dt.getDate()-i);
+    const rd = getReadinessForDate(dt);
+    if(rd) vals.push(rd);
+  }
+  return vals;
+}
+function getReadinessTrendModifier(date){
+  const recent = getRecentReadiness(date, 4);
+  if(!recent.length) return 0;
+  const score = avg(recent.map(readinessScore));
+  if(score <= -1.5) return -4;
+  if(score <= -0.75) return -2;
+  if(score >= 1.5) return 2;
+  if(score >= 0.75) return 1;
+  return 0;
+}
+function getMomentumBump(day){
+  if(day.isRest) return 0;
+  const flat = buildSchedule().flat()
+    .filter(d => !d.isRest && d.date < day.date)
+    .sort((a,b) => a.date - b.date);
+  const done = flat.filter(d => getEffStatus(d) === 'done').slice(-3);
+  if(done.length < 2) return 0;
+  const ratios = done.map(d => {
+    const log = S.logs[dk(d.date)] || {};
+    const actual = log.actualMins || d.baseMins;
+    return actual / Math.max(d.baseMins, 1);
+  });
+  const strong = ratios.filter(r => r >= 1.15).length;
+  const solid = ratios.filter(r => r >= 1.05).length;
+  const avgRatio = avg(ratios);
+  const readinessTrend = avg(done.map(d => readinessScore(getReadinessForDate(d.date))));
+  if(readinessTrend <= -1) return 0;
+  if(strong >= 3 || avgRatio >= 1.22) return 4;
+  if(strong >= 2 || avgRatio >= 1.15) return 3;
+  if(solid >= 2 || avgRatio >= 1.08) return 2;
+  return 0;
+}
+function getBlockLift(w){
+  if(w < 4) return 0;
+  const completed = [];
+  const currentWeek = getWeekIndex(today());
+  for(let endW=3; endW < w && endW < currentWeek; endW += 4){
+    const stats = S.weeklyAdapt[weekKey(endW+1)]?.stats;
+    if(!stats) continue;
+    if(stats.adherence >= 0.75 && stats.perf >= 1.02 && stats.sick === 0) completed.push(1);
+    else if(stats.adherence < 0.45 || stats.sick >= 2) completed.push(-1);
+  }
+  const score = completed.reduce((a,b)=>a+b,0);
+  return clamp(score * 1.5, 0, 8);
+}
+
 function openReadiness(){
   selectedReadiness = S.dailyState[dk(today())]?.readiness || null;
   const opts = [
@@ -931,9 +1204,10 @@ function getBlockTargets(w){
   if(cyclePhase === 1){ deltaMin = 0;  deltaMax = 8; }
   if(cyclePhase === 2){ deltaMin = 2;  deltaMax = 10; }
   if(cyclePhase === 3){ deltaMin = -4; deltaMax = 2; }
-  const min = clamp(baseMid + deltaMin, 12, 50);
-  const max = clamp(baseMid + deltaMax, min+2, 55);
-  return { min, max };
+  const lift = getBlockLift(w);
+  const min = clamp(Math.round(baseMid + deltaMin + lift), 12, 54);
+  const max = clamp(Math.round(baseMid + deltaMax + lift), min+2, 60);
+  return { min, max, lift };
 }
 const NOTES = {
   m: ['Easy pace · period phase','Gentle movement helps cramps','Light and steady','Period day · listen to your body','Easy does it'],
@@ -1008,7 +1282,10 @@ function getRecommendedMins(day){
   let mins = day.baseMins;
   const rd = getReadinessForDate(day.date);
   if(rd === 'sick') return 0;
-  mins = clamp(mins + readinessOffset(rd), 10, 60);
+  const immediate = readinessOffset(rd);
+  const trend = getReadinessTrendModifier(day.date);
+  const momentum = rd === 'exhausted' || rd === 'low' || rd === 'sick' ? 0 : getMomentumBump(day);
+  mins = clamp(mins + immediate + trend + momentum, 10, 60);
   return mins;
 }
 
@@ -1019,9 +1296,12 @@ function evaluateWeek(w){
   const prev = buildWeek(w-1).filter(d => !d.isRest && d.date < today());
   if(prev.length < 3) return;
   let done=0, miss=0, sick=0, rest=0, ratioSum=0, ratioN=0;
+  const readinessMarks = [];
   for(const d of prev){
     const es = getEffStatus(d);
     const log = S.logs[dk(d.date)];
+    const rd = getReadinessForDate(d.date);
+    if(rd) readinessMarks.push(readinessScore(rd));
     if(es === 'done'){
       done++;
       const actual = log?.actualMins || d.baseMins;
@@ -1033,20 +1313,27 @@ function evaluateWeek(w){
   }
   const adherence = done / prev.length;
   const perf = ratioN ? ratioSum / ratioN : 0;
+  const readinessAvg = avg(readinessMarks);
   const prevOffset = getWeekOffset(w-1);
   let offset = prevOffset;
   let reason = 'Held steady.';
-  if(sick >= 2){
-    offset = Math.max(-10, prevOffset - 5);
-    reason = 'Eased back because health came first last week.';
+  if(sick >= 2 || readinessAvg <= -1.5){
+    offset = Math.max(-12, prevOffset - 5);
+    reason = 'Eased back because recovery looked more important than pushing.';
   } else if(miss >= 2 || adherence < 0.5){
-    offset = Math.max(-10, prevOffset - 5);
-    reason = 'Reduced a little because last week was harder to complete.';
-  } else if(perf >= 1.1 && adherence >= 0.8 && sick === 0){
-    offset = Math.min(10, prevOffset + 5);
+    offset = Math.max(-12, prevOffset - 5);
+    reason = 'Reduced the load a bit because last week was hard to complete.';
+  } else if(adherence >= 0.9 && perf >= 1.18 && sick === 0 && readinessAvg >= 0){
+    offset = Math.min(12, prevOffset + 6);
+    reason = 'Leveled up faster after a strong, high-confidence week.';
+  } else if(adherence >= 0.8 && perf >= 1.08 && sick === 0){
+    offset = Math.min(12, prevOffset + 4);
     reason = 'Leveled up after a strong, consistent week.';
+  } else if(readinessAvg <= -0.75 && adherence >= 0.6){
+    offset = Math.max(-12, prevOffset - 3);
+    reason = 'Kept progress gentle because energy looked low most of the week.';
   }
-  S.weeklyAdapt[key] = { offset, reason, stamp: dk(today()), stats:{ adherence, perf, sick, miss, rest } };
+  S.weeklyAdapt[key] = { offset, reason, stamp: dk(today()), stats:{ adherence, perf, sick, miss, rest, readinessAvg } };
   saveState();
 }
 function evaluatePendingWeeks(){
@@ -1089,7 +1376,8 @@ function weekDesc(w) {
   const t = getBlockTargets(w);
   const off = getWeekOffset(w);
   const bits = [`5 active days`, `${t.min + off}–${t.max + off} min target`];
-  if (off) bits.push(`${off > 0 ? '+' : ''}${off} min adaptation`);
+  if (t.lift) bits.push(`long-game +${Math.round(t.lift)} min`);
+  if (off) bits.push(`${off > 0 ? '+' : ''}${off} min weekly adaptation`);
   return bits.join(' · ');
 }
 
@@ -1104,25 +1392,34 @@ function renderTodayCard(weeks){
   const bodyEl = document.getElementById('today-card-body');
   const sumEl = document.getElementById('today-summary');
   if(!todayEntry){
-    titleEl.textContent = `Today is off-grid somehow. Impressive.`;
+    titleEl.textContent = `Today’s plan`;
     bodyEl.textContent = `No plan entry found for today. That’s not supposed to happen, which means the timeline goblins won.`;
     sumEl.innerHTML = '';
     return;
   }
   const rec = getRecommendedMins(todayEntry);
-  const readinessText = readiness ? readiness[0].toUpperCase() + readiness.slice(1) : 'Not checked in';
+  const readinessText = readiness ? titleCase(readiness) : 'Not checked in';
   const phase = todayEntry.isRest ? 'r' : getPhase(td);
-  const phaseText = getProfile().cycleAware ? PHASE_LABELS[phase] : 'Standard mode';
-  const line = todayEntry.isRest || readiness === 'sick'
-    ? `${name}, today is a recovery call. No heroics.`
-    : `${name}, today’s recommendation is <strong>${rec} minutes</strong>. Base plan was ${todayEntry.baseMins} minutes.`;
+  const phaseText = getProfile().cycleAware ? PHASE_LABELS[phase].replace(/ phase$/i,'') : 'Standard mode';
+  const trendAdj = getReadinessTrendModifier(td);
+  const momentum = todayEntry.isRest ? 0 : getMomentumBump(todayEntry);
   titleEl.textContent = `Today’s plan`;
-  bodyEl.innerHTML = `${line} ${readiness ? `We adjusted it because you said you feel <strong>${readiness}</strong>.` : `No readiness check yet, so this is the base recommendation.`}`;
-  const confClass = info.confidence === 'high' ? 'high' : (info.confidence === 'med' ? 'med' : 'low');
+  bodyEl.textContent = getTodayMessage(todayEntry, { name, readiness, rec, trendAdj, momentum, info });
+  const confidenceText = info.enabled ? softConfidenceLabel(info.confidence) : 'Standard walking mode';
   sumEl.innerHTML = `
-    <div class="cmeta"><div class="cmeta-n">${todayEntry.isRest || readiness==='sick' ? 'Rest' : rec}</div><div class="cmeta-l">${todayEntry.isRest || readiness==='sick' ? 'Recommended' : 'Minutes'}</div></div>
-    <div class="cmeta"><div class="cmeta-n" style="font-size:16px">${readinessText}</div><div class="cmeta-l">Readiness</div></div>
-    <div class="cmeta"><div class="badge ${confClass}">${info.enabled ? info.confidence + ' confidence' : 'standard mode'}</div><div class="cmeta-l" style="margin-top:8px">${phaseText}</div></div>
+    <div class="cmeta">
+      <div class="cmeta-main num">${todayEntry.isRest || readiness==='sick' ? 'Rest' : rec}</div>
+      <div class="cmeta-sub">${todayEntry.isRest || readiness==='sick' ? 'recommended' : 'minutes'}</div>
+    </div>
+    <div class="cmeta">
+      <div class="cmeta-main text">${readinessText}</div>
+      <div class="cmeta-sub">readiness</div>
+    </div>
+    <div class="cmeta">
+      <div class="cmeta-phase">${phaseText}</div>
+      <div class="cmeta-sub">phase</div>
+      <div class="cmeta-note">${confidenceText}</div>
+    </div>
   `;
 }
 
@@ -1266,13 +1563,18 @@ function renderCycle() {
     return;
   }
   const badge = info.confidence === 'high' ? 'high' : (info.confidence === 'med' ? 'med' : 'low');
-  const confidenceLabel = info.confidence === 'high' ? 'High confidence' : info.confidence === 'med' ? 'Medium confidence' : 'Low confidence';
+  const confidenceLabel = softConfidenceLabel(info.confidence);
   el.innerHTML = `<h3>Cycle estimate</h3>
     <p><span class="badge ${badge}">${confidenceLabel}</span></p>
     <p style="margin-top:8px">Tracked period days: <strong>${info.trackedDays}</strong> · Estimated cycle: <strong>${info.cycleLength} days</strong> · Estimated period length: <strong>${info.periodLength} days</strong></p>
     <p style="margin-top:6px">${info.confidence === 'low'
-      ? 'Still learning. Predictions are soft and should be treated like vibes with receipts, not medical truth.'
-      : 'This is now based on repeated logs, so the estimate is getting less hand-wavy.'}</p>`;
+      ? 'Still learning. Predictions are soft and should be treated like helpful estimates, not medical truth.'
+      : 'This is now based on repeated logs, so the estimate is getting more grounded and less hand-wavy.'}</p>`;
+}
+
+function makeCalendarEntry(date, scheduledEntry = null){
+  if (scheduledEntry) return scheduledEntry;
+  return { date:new Date(date), isRest:false, baseMins:0, targetMin:0, targetMax:0, title:'Open log day', note:'Historical or unscheduled entry', unscheduled:true };
 }
 
 function renderCalendar(weeks) {
@@ -1296,11 +1598,15 @@ function renderCalendar(weeks) {
   for (let d = 1; d <= daysInMonth; d++) {
     const key = dk(new Date(calYear, calMonth, d));
     const entry = lookup[key];
-    if (!entry || entry.isRest) continue;
     const log = S.logs[key];
-    const es = getEffStatus(entry);
-    if (es === 'done') { mDone++; mMins += log?.actualMins || getRecommendedMins(entry); mKm += log?.actualKm || 0; }
-    if (es === 'sick') mSick++;
+    const isScheduledActive = entry && !entry.isRest;
+    const status = isScheduledActive ? getEffStatus(entry) : (log?.status || null);
+    if (status === 'done') {
+      mDone++;
+      mMins += log?.actualMins || (isScheduledActive ? getRecommendedMins(entry) : 0);
+      mKm += log?.actualKm || 0;
+    }
+    if (status === 'sick') mSick++;
   }
   document.getElementById('cal-stats').innerHTML = `
     <div class="cal-stat"><div class="cal-stat-n green">${mDone}</div><div class="cal-stat-l">Done</div></div>
@@ -1321,29 +1627,31 @@ function renderCalendar(weeks) {
     const date = new Date(calYear, calMonth, d); date.setHours(0,0,0,0);
     const key   = dk(date);
     const entry = lookup[key];
+    const modalEntry = makeCalendarEntry(date, entry);
     const log   = S.logs[key];
     const isToday  = date.getTime() === todayDt.getTime();
     const isFuture = date > todayDt;
     let phCls = 'p-u', stCls = '', icon = '', minsText = '';
 
-    if (entry) {
-      const phase = entry.isRest ? 'r' : getPhase(date);
-      phCls = `p-${phase}`;
-      if (log?.isPeriod && !entry.isRest) phCls = 'p-m';
-      const es = getEffStatus(entry);
-      const effMins = getRecommendedMins(entry);
-      if      (es === 'done') { stCls = 's-done'; icon = '✅'; const am = log?.actualMins || effMins; minsText = am + 'm' + (log?.actualKm ? ` · ${log.actualKm}k` : ''); }
-      else if (es === 'sick') { stCls = 's-sick'; icon = '🤒'; minsText = 'sick'; }
-      else if (es === 'rest') { stCls = 's-rest'; icon = '🛋️'; minsText = 'rest'; }
-      else if (es === 'miss') { icon = '○'; }
-      else if (entry.isRest)  { icon = '—'; }
-      else { minsText = `${effMins}m`; }
-    }
+    const phase = entry?.isRest ? 'r' : getPhase(date);
+    phCls = `p-${phase}`;
+    if (!entry && !log?.isPeriod && !log?.status) phCls = `p-${getPhase(date)}`;
+    if (log?.isPeriod && phase !== 'r') phCls = 'p-m';
+
+    const status = entry ? getEffStatus(entry) : (log?.status || null);
+    const effMins = entry ? getRecommendedMins(entry) : null;
+    if      (status === 'done') { stCls = 's-done'; icon = '✅'; const am = log?.actualMins || effMins || 0; minsText = am ? (am + 'm' + (log?.actualKm ? ` · ${log.actualKm}k` : '')) : (log?.actualKm ? `${log.actualKm}k` : 'done'); }
+    else if (status === 'sick') { stCls = 's-sick'; icon = '🤒'; minsText = 'sick'; }
+    else if (status === 'rest') { stCls = 's-rest'; icon = '🛋️'; minsText = 'rest'; }
+    else if (status === 'miss') { icon = '○'; }
+    else if (entry?.isRest)     { icon = '—'; }
+    else if (entry && !isFuture){ minsText = `${effMins}m`; }
+    else if (entry && isFuture) { minsText = `${effMins}m`; }
 
     const cell = document.createElement('div');
     cell.className = `ccell ${phCls} ${stCls} ${isToday ? 'is-today' : ''} ${isFuture && !isToday ? 'future' : ''}`.trim();
     cell.innerHTML = `${log?.isPeriod ? '<div class="period-pip"></div>' : ''}<div class="ccell-num">${d}</div>${icon ? `<div class="ccell-icon">${icon}</div>` : ''}${minsText ? `<div class="ccell-mins">${minsText}</div>` : ''}`;
-    if (entry) cell.onclick = () => openModal(key, entry, entry.isRest ? 'r' : getPhase(date));
+    cell.onclick = () => openModal(key, modalEntry, phase);
     grid.appendChild(cell);
   }
 }
@@ -1385,7 +1693,7 @@ function openModal(key, day, phase) {
   const cb = document.getElementById('period-cb');
   cb.checked = !!(log?.isPeriod);
   document.getElementById('modal-date').textContent = `${DAYS[new Date(day.date).getDay()]}, ${MONTHS[new Date(day.date).getMonth()]} ${new Date(day.date).getDate()}`;
-  document.getElementById('modal-phase').textContent = PHASE_LABELS[phase] || '';
+  document.getElementById('modal-phase').textContent = day?.unscheduled ? `${PHASE_LABELS[phase] || 'Open log day'} · historical / manual entry` : (PHASE_LABELS[phase] || '');
   document.getElementById('inp-mins').value = log?.actualMins || '';
   document.getElementById('inp-km').value   = log?.actualKm   || '';
   document.getElementById('mbtn-clear').style.display = (log?.status || log?.isPeriod) ? 'block' : 'none';
