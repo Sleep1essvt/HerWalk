@@ -117,14 +117,47 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
 .ssub { font-size:12px; color:var(--muted); margin-bottom:16px; }
 
 /* ── STATS VIEW ── */
-.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
-.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:18px; box-shadow:var(--shadow); text-align:center; }
-.stat-n { font-family:'DM Serif Display',serif; font-size:42px; line-height:1; margin-bottom:4px; }
-.stat-l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+.stats-hero { background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(251,249,246,.98)); border:1px solid var(--border); border-radius:var(--r); padding:16px; margin-bottom:14px; box-shadow:var(--shadow); }
+.stats-hero-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.stats-kicker { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-bottom:5px; }
+.stats-hero-title { font-family:'DM Serif Display',serif; font-size:24px; line-height:1.1; margin-bottom:6px; }
+.stats-hero-copy { font-size:12px; color:var(--muted); line-height:1.65; max-width:260px; }
+.stats-pill { flex-shrink:0; border:1px solid var(--border); background:rgba(255,255,255,.8); border-radius:999px; padding:7px 12px; font-size:11px; color:var(--muted); white-space:nowrap; }
+.stats-pill strong { color:var(--ink); font-weight:600; }
+.stats-spotlights { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.spot-card { background:var(--surface); border:1px solid rgba(0,0,0,.06); border-radius:14px; padding:12px; box-shadow:0 1px 8px rgba(0,0,0,.03); min-height:88px; }
+.spot-kicker { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:8px; }
+.spot-value { font-family:'DM Serif Display',serif; font-size:26px; line-height:1; margin-bottom:5px; }
+.spot-value.good { color:var(--done); }
+.spot-value.warm { color:var(--l); }
+.spot-value.soft { color:var(--m-text); }
+.spot-note { font-size:10px; color:#8a847b; line-height:1.35; }
+.stats-block { margin-top:18px; }
+.stats-block-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.stats-block-title { font-family:'DM Serif Display',serif; font-size:18px; }
+.stats-block-note { font-size:11px; color:var(--muted); }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px; box-shadow:var(--shadow); text-align:left; min-height:106px; display:flex; flex-direction:column; justify-content:space-between; }
+.stat-meta { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:12px; }
+.stat-n { font-family:'DM Serif Display',serif; font-size:38px; line-height:1; margin-bottom:4px; }
+.stat-l { font-size:12px; color:var(--ink); }
+.stat-note { font-size:10px; color:#8a847b; line-height:1.35; margin-top:8px; }
 .stat-n.green { color:var(--done); }
 .stat-n.red { color:var(--m); }
 .stat-n.amber { color:var(--l); }
 .phase-legend-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px; box-shadow:var(--shadow); display:flex; gap:10px; flex-wrap:wrap; }
+.phase-legend-wrap { margin-top:12px; }
+.phase-legend-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.phase-legend-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+.phase-legend-note { font-size:11px; color:var(--muted); }
+.phase-chip { display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:7px 10px; background:rgba(255,255,255,.72); border:1px solid rgba(0,0,0,.06); font-size:11px; color:var(--ink); }
+.phase-dot { width:8px; height:8px; border-radius:999px; flex-shrink:0; }
+.phase-dot.m { background:var(--m); }
+.phase-dot.f { background:var(--f); }
+.phase-dot.o { background:var(--o); }
+.phase-dot.l { background:var(--l); }
+.phase-dot.r { background:#c9c4bd; }
+
 
 /* ── CALENDAR ── */
 .calnav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
@@ -339,8 +372,59 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
 .cmeta-sub { margin-top:5px; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; font-weight:600; }
 .cmeta-note { margin-top:4px; font-size:10px; color:#8a847b; line-height:1.25; }
 @media(max-width:520px){
-  .opt-grid,.readiness-pills,.setup-row,.summary-row{grid-template-columns:1fr;}
+  .opt-grid,.readiness-pills,.setup-row,.summary-row,.stats-spotlights,.ach-progress-row,.ach-grid{grid-template-columns:1fr;} .stats-hero-top{flex-direction:column;} .stats-pill{align-self:flex-start;}
 }
+
+
+/* ── ACHIEVEMENTS ── */
+.ach-section { margin-top:18px; padding-top:18px; border-top:1px solid rgba(0,0,0,.06); }
+.ach-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+.ach-title { font-family:'DM Serif Display',serif; font-size:20px; }
+.ach-count { font-size:11px; color:var(--muted); }
+.ach-progress-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.ach-progress-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:14px; box-shadow:var(--shadow); min-height:112px; }
+.ach-prog-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:6px; }
+.ach-prog-val { font-family:'DM Serif Display',serif; font-size:22px; line-height:1; margin-bottom:2px; }
+.ach-prog-next { font-size:10px; color:var(--muted); margin-bottom:8px; }
+.ach-prog-bar { height:4px; background:rgba(0,0,0,.07); border-radius:2px; overflow:hidden; }
+.ach-prog-fill { height:100%; border-radius:2px; transition:width .4s; }
+.ach-prog-fill.streak { background:linear-gradient(90deg,var(--m),#e8a0a8); }
+.ach-prog-fill.km { background:linear-gradient(90deg,var(--l),#c4a040); }
+.ach-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+@media(min-width:420px){ .ach-grid { grid-template-columns:repeat(4,1fr); } }
+.ach-badge { border-radius:14px; padding:12px 8px 10px; text-align:center; border:1.5px solid; position:relative; transition:transform .12s; cursor:default; box-shadow:0 1px 8px rgba(0,0,0,.04); }
+.ach-badge.unlocked { background:var(--surface); }
+.ach-badge.locked { background:var(--ground); border-color:var(--border)!important; opacity:.55; filter:saturate(0.3); }
+.ach-badge-icon { font-size:22px; line-height:1; margin-bottom:5px; display:block; }
+.ach-badge-title { font-size:10px; font-weight:600; line-height:1.2; color:var(--ink); margin-bottom:2px; }
+.ach-badge.locked .ach-badge-title { color:var(--muted); }
+.ach-badge-sub { font-size:9px; color:var(--muted); line-height:1.28; min-height:24px; }
+.ach-badge-date { font-size:8px; color:#8f877c; line-height:1.25; margin-top:5px; min-height:20px; }
+.ach-badge.locked .ach-badge-date { color:#b6afa6; }
+.ach-badge-tier { font-size:8px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; margin-top:4px; display:block; }
+/* Tier tints */
+.ach-badge.tier-common  { border-color:rgba(0,0,0,.1); }
+.ach-badge.tier-rare    { border-color:#A8C8E8; background:linear-gradient(145deg,#fff,#eff6fc); }
+.ach-badge.tier-epic    { border-color:#D4A0D4; background:linear-gradient(145deg,#fff,#f8f0f8); }
+.ach-badge.tier-legendary { border-color:#F0C060; background:linear-gradient(145deg,#fffdf0,#fff8e0); box-shadow:0 2px 12px rgba(196,160,64,.18); }
+.ach-badge.tier-common  .ach-badge-tier { color:var(--muted); }
+.ach-badge.tier-rare    .ach-badge-tier { color:#3A7DB5; }
+.ach-badge.tier-epic    .ach-badge-tier { color:#8B4A9B; }
+.ach-badge.tier-legendary .ach-badge-tier { color:#B07820; }
+/* Unlock glow */
+.ach-badge.unlocked.tier-legendary { animation:achglow 2.5s ease-in-out infinite alternate; }
+@keyframes achglow { from{box-shadow:0 2px 12px rgba(196,160,64,.18)} to{box-shadow:0 4px 20px rgba(196,160,64,.38)} }
+
+/* ── ACHIEVEMENT TOAST ── */
+#ach-toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); z-index:500; max-width:300px; width:calc(100% - 40px); pointer-events:none; opacity:0; transition:opacity .3s, transform .35s cubic-bezier(.34,1.4,.64,1); }
+#ach-toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+.ach-toast-inner { background:var(--paper); border-radius:20px; padding:16px 18px; box-shadow:0 8px 32px rgba(0,0,0,.14); border:1.5px solid var(--m-border); display:flex; align-items:center; gap:14px; }
+.ach-toast-icon { font-size:32px; flex-shrink:0; }
+.ach-toast-body { flex:1; min-width:0; }
+.ach-toast-kicker { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.09em; color:var(--m-text); margin-bottom:3px; }
+.ach-toast-title { font-family:'DM Serif Display',serif; font-size:16px; line-height:1.1; margin-bottom:2px; }
+.ach-toast-sub { font-size:11px; color:var(--muted); line-height:1.4; }
+.ach-toast-close { flex-shrink:0; background:none; border:none; font-size:18px; color:var(--muted); cursor:pointer; padding:2px; line-height:1; }
 
 </style>
 </head>
@@ -356,13 +440,6 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
           <div class="app-sub">Adaptive walking &amp; heart health log</div>
         </div>
         <div class="streak" id="streak">✨ Let's go!</div>
-      </div>
-      <div class="phases">
-        <div class="ph-dot"><span style="background:var(--m)"></span>Period</div>
-        <div class="ph-dot"><span style="background:var(--f)"></span>Follicular</div>
-        <div class="ph-dot"><span style="background:var(--o)"></span>Ovulation</div>
-        <div class="ph-dot"><span style="background:var(--l)"></span>Luteal</div>
-        <div class="ph-dot"><span style="background:var(--rest)"></span>Rest</div>
       </div>
     </div>
   </div>
@@ -387,6 +464,19 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
       <div class="vinner">
         <div class="abanner" id="abanner"></div>
         <div class="card-lite" id="today-card"><div id="today-card-title">Today’s plan</div><div id="today-card-body">Loading...</div><div class="summary-row" id="today-summary"></div></div>
+        <div class="phase-legend-wrap">
+          <div class="phase-legend-head">
+            <div class="phase-legend-title">Cycle colors</div>
+            <div class="phase-legend-note">Used on the schedule cards.</div>
+          </div>
+          <div class="phase-legend-box">
+            <div class="phase-chip"><span class="phase-dot m"></span>Period</div>
+            <div class="phase-chip"><span class="phase-dot f"></span>Follicular</div>
+            <div class="phase-chip"><span class="phase-dot o"></span>Ovulation</div>
+            <div class="phase-chip"><span class="phase-dot l"></span>Luteal</div>
+            <div class="phase-chip"><span class="phase-dot r"></span>Rest day</div>
+          </div>
+        </div>
         <div class="wkhdr">
           <div class="wkhdr-top">
             <div class="wkhdr-title" id="wk-title"></div>
@@ -411,6 +501,19 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
           <button class="calnav-arr" onclick="calNav(1)">&#8594;</button>
         </div>
         <div class="cal-stats" id="cal-stats"></div>
+        <div class="phase-legend-wrap">
+          <div class="phase-legend-head">
+            <div class="phase-legend-title">Calendar legend</div>
+            <div class="phase-legend-note">Background tint shows the cycle estimate.</div>
+          </div>
+          <div class="phase-legend-box">
+            <div class="phase-chip"><span class="phase-dot m"></span>Period</div>
+            <div class="phase-chip"><span class="phase-dot f"></span>Follicular</div>
+            <div class="phase-chip"><span class="phase-dot o"></span>Ovulation</div>
+            <div class="phase-chip"><span class="phase-dot l"></span>Luteal</div>
+            <div class="phase-chip"><span class="phase-dot r"></span>Rest day</div>
+          </div>
+        </div>
         <div class="dow-row">
           <div class="dow-cell">Sun</div><div class="dow-cell">Mon</div><div class="dow-cell">Tue</div>
           <div class="dow-cell">Wed</div><div class="dow-cell">Thu</div><div class="dow-cell">Fri</div><div class="dow-cell">Sat</div>
@@ -423,20 +526,78 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
     <div id="v-stats" class="view">
       <div class="vinner">
         <div class="stitle">My Stats</div>
-        <div class="ssub">Your progress at a glance.</div>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-n green" id="s-done">0</div><div class="stat-l">Sessions done</div></div>
-          <div class="stat-card"><div class="stat-n" id="s-mins">0</div><div class="stat-l">Minutes walked</div></div>
-          <div class="stat-card"><div class="stat-n amber" id="s-km">0.0</div><div class="stat-l">km total</div></div>
-          <div class="stat-card"><div class="stat-n red" id="s-sick">0</div><div class="stat-l">Sick days</div></div>
+        <div class="ssub">A softer look at the work she has already put in.</div>
+
+        <div class="stats-hero">
+          <div class="stats-hero-top">
+            <div>
+              <div class="stats-kicker">Progress snapshot</div>
+              <div class="stats-hero-title" id="stats-hero-title">Steady momentum.</div>
+              <div class="stats-hero-copy" id="stats-hero-copy">Each logged walk stacks quietly. This page keeps the wins readable without yelling at her.</div>
+            </div>
+            <div class="stats-pill" id="stats-hero-pill"><strong>0</strong> keepsakes collected</div>
+          </div>
+          <div class="stats-spotlights">
+            <div class="spot-card">
+              <div class="spot-kicker">Consistency</div>
+              <div class="spot-value good" id="spot-streak">0</div>
+              <div class="spot-note" id="spot-streak-note">Longest streak so far</div>
+            </div>
+            <div class="spot-card">
+              <div class="spot-kicker">Distance</div>
+              <div class="spot-value warm" id="spot-km">0.0</div>
+              <div class="spot-note" id="spot-km-note">Total kilometers logged</div>
+            </div>
+            <div class="spot-card">
+              <div class="spot-kicker">Time on feet</div>
+              <div class="spot-value soft" id="spot-mins">0</div>
+              <div class="spot-note" id="spot-mins-note">Minutes invested</div>
+            </div>
+          </div>
         </div>
-        <div class="phase-legend-box">
-          <div class="ph-dot"><span style="background:var(--m)"></span>Period</div>
-          <div class="ph-dot"><span style="background:var(--f)"></span>Follicular</div>
-          <div class="ph-dot"><span style="background:var(--o)"></span>Ovulation</div>
-          <div class="ph-dot"><span style="background:var(--l)"></span>Luteal</div>
-          <div class="ph-dot"><span style="background:var(--rest)"></span>Rest</div>
+
+        <div class="stats-block">
+          <div class="stats-block-head">
+            <div class="stats-block-title">Overview</div>
+            <div class="stats-block-note">The practical numbers.</div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-meta">Sessions</div>
+                <div class="stat-n green" id="s-done">0</div>
+                <div class="stat-l">Sessions done</div>
+              </div>
+              <div class="stat-note">Every completed walk counts here, even the small ones.</div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-meta">Minutes</div>
+                <div class="stat-n" id="s-mins">0</div>
+                <div class="stat-l">Minutes walked</div>
+              </div>
+              <div class="stat-note">Total logged walking time across the app so far.</div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-meta">Distance</div>
+                <div class="stat-n amber" id="s-km">0.0</div>
+                <div class="stat-l">km total</div>
+              </div>
+              <div class="stat-note">Distance feeds the milestone system and shows long-game progress.</div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-meta">Recovery</div>
+                <div class="stat-n red" id="s-sick">0</div>
+                <div class="stat-l">Sick days</div>
+              </div>
+              <div class="stat-note">Useful context, not a guilt counter.</div>
+            </div>
+          </div>
         </div>
+
+        <div class="ach-section" id="ach-section"></div>
       </div>
     </div>
 
@@ -590,6 +751,19 @@ html, body { height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; bac
 </div>
 
 
+<!-- ACHIEVEMENT TOAST -->
+<div id="ach-toast">
+  <div class="ach-toast-inner">
+    <div class="ach-toast-icon" id="ach-toast-icon">🌸</div>
+    <div class="ach-toast-body">
+      <div class="ach-toast-kicker">New keepsake unlocked ✨</div>
+      <div class="ach-toast-title" id="ach-toast-title">—</div>
+      <div class="ach-toast-sub" id="ach-toast-sub">—</div>
+    </div>
+    <button class="ach-toast-close" onclick="dismissToast()">×</button>
+  </div>
+</div>
+
 <script>
 const LEGACY_KEY = 'herwalk_v1';
 const STORAGE_KEY = 'herwalk_v2';
@@ -608,13 +782,14 @@ let selectedReadiness = null;
 let activeSetupStep = 0;
 
 const DEFAULT_STATE = {
-  version: 4,
+  version: 5,
   profile: null,
   logs: {},
   weeklyAdapt: {},
   dailyState: {},
   messageMemory: { recent: [], recentFull: [] },
-  meta: { migratedFromV1:false, lastOpened:null, legacyBackup:null, todayMessage:null }
+  meta: { migratedFromV1:false, lastOpened:null, legacyBackup:null, todayMessage:null },
+  companion: { foodSpent:0, lastFedAt:null, feedHistory:[], lastMoodNote:null }
 };
 
 let S = structuredClone(DEFAULT_STATE);
@@ -635,7 +810,7 @@ function avg(nums){ return nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length :
 
 function titleCase(s){ return s ? s[0].toUpperCase() + s.slice(1) : ''; }
 function softConfidenceLabel(conf){
-  return conf === 'high' ? 'Cycle estimate strong' : conf === 'med' ? 'Cycle estimate settling' : 'Cycle still learning';
+  return conf === 'high' ? 'Cycle estimate strong' : conf === 'med' ? 'Cycle estimate settling' : 'Early cycle estimate';
 }
 function pickFromPool(pool, used, recent, maxRecent=6){
   const rec = new Set((recent || []).slice(-maxRecent));
@@ -837,6 +1012,204 @@ function getTodayMessage(todayEntry, ctx){
   return built.text;
 }
 
+
+// ── ACHIEVEMENTS ──────────────────────────────────────────────────────────────
+
+function getAchievementDefinitions() {
+  return [
+    // Streak milestones: rhythm / devotion / consistency
+    { id:'streak_3',   type:'streak', threshold:3,    icon:'🩰', title:'Ribbon of Beginning', sub:'A soft start, kept for 3 days',       tier:'common' },
+    { id:'streak_7',   type:'streak', threshold:7,    icon:'🎐', title:'Weeklong Waltz',      sub:'A full week of showing up',           tier:'common' },
+    { id:'streak_14',  type:'streak', threshold:14,   icon:'🕊️', title:'Fortnight Feather',   sub:'14 days of gentle momentum',          tier:'rare' },
+    { id:'streak_30',  type:'streak', threshold:30,   icon:'🌙', title:'Moonlace Promise',    sub:'A whole month stitched together',     tier:'rare' },
+    { id:'streak_60',  type:'streak', threshold:60,   icon:'🪞', title:'Velvet Devotion',     sub:'60 days of steady devotion',          tier:'epic' },
+    { id:'streak_100', type:'streak', threshold:100,  icon:'👑', title:'Centennial Halo',     sub:'100 days crowned with consistency',   tier:'legendary' },
+    // Kilometer milestones: journey / landmarks / distance
+    { id:'km_5',   type:'km', threshold:5,    icon:'📍', title:'Little Landmark',     sub:'5 km gathered on her map',            tier:'common' },
+    { id:'km_10',  type:'km', threshold:10,   icon:'🌼', title:'Daisy Milepost',      sub:'10 km of bright little steps',        tier:'common' },
+    { id:'km_25',  type:'km', threshold:25,   icon:'🍓', title:'Strawberry Route',    sub:'25 km sweetly collected',             tier:'rare' },
+    { id:'km_50',  type:'km', threshold:50,   icon:'💌', title:'Postcard Path',       sub:'50 km worth writing home about',      tier:'rare' },
+    { id:'km_100', type:'km', threshold:100,  icon:'🦢', title:'Swan Trail Medal',    sub:'100 km carried with grace',           tier:'epic' },
+    { id:'km_250', type:'km', threshold:250,  icon:'🗝️', title:'Silver Route Key',    sub:'250 km opened step by step',          tier:'epic' },
+    { id:'km_500', type:'km', threshold:500,  icon:'🏵️', title:'Garden Distance Crest', sub:'500 km pressed into memory',        tier:'legendary' },
+    { id:'km_1000',type:'km', threshold:1000, icon:'💎', title:'Thousand-Keepsake Gem',sub:'1,000 km turned into a treasure',     tier:'legendary' },
+  ];
+}
+
+function getAchievementMetrics() {
+  // Longest streak: max consecutive 'done' walking days (not rest/sick/miss)
+  const todayDt = today();
+  const flat = buildSchedule().flat();
+  const active = flat.filter(d => !d.isRest && d.date <= todayDt).sort((a,b) => a.date - b.date);
+
+  // Compute longest streak
+  let longestStreak = 0, currentRun = 0;
+  for (const d of active) {
+    const es = getEffStatus(d);
+    if (es === 'done') { currentRun++; longestStreak = Math.max(longestStreak, currentRun); }
+    else { currentRun = 0; }
+  }
+
+  // Current streak (trailing from today backwards)
+  let currentStreak = 0, streaking = true;
+  for (const d of [...active].reverse()) {
+    const es = getEffStatus(d);
+    if (es === 'done') { if (streaking) currentStreak++; }
+    else { streaking = false; break; }
+  }
+
+  // Total km from done logs only
+  let totalKm = 0;
+  for (const d of active) {
+    if (getEffStatus(d) === 'done') {
+      totalKm += S.logs[dk(d.date)]?.actualKm || 0;
+    }
+  }
+
+  return { longestStreak, currentStreak, totalKm: Math.round(totalKm * 10) / 10 };
+}
+
+function ensureAchievements() {
+  if (!S.achievements) {
+    S.achievements = { unlocked: {}, lastCelebrated: null, celebrationQueue: [] };
+  }
+  if (!S.achievements.unlocked)        S.achievements.unlocked = {};
+  if (!S.achievements.celebrationQueue) S.achievements.celebrationQueue = [];
+}
+
+function evaluateAchievements() {
+  ensureAchievements();
+  const { longestStreak, totalKm } = getAchievementMetrics();
+  const defs = getAchievementDefinitions();
+  const newlyUnlocked = [];
+
+  for (const def of defs) {
+    if (S.achievements.unlocked[def.id]) continue; // already unlocked
+    const value = def.type === 'streak' ? longestStreak : totalKm;
+    if (value >= def.threshold) {
+      S.achievements.unlocked[def.id] = { unlockedAt: new Date().toISOString(), valueAtUnlock: value };
+      newlyUnlocked.push(def.id);
+    }
+  }
+
+  if (newlyUnlocked.length) {
+    // Queue all newly unlocked for celebration (show latest/highest first)
+    S.achievements.celebrationQueue = [
+      ...(S.achievements.celebrationQueue || []),
+      ...newlyUnlocked
+    ];
+    saveState();
+    maybeShowAchievementCelebration();
+  }
+}
+
+function getNextAchievementProgress(type) {
+  ensureAchievements();
+  const { longestStreak, totalKm } = getAchievementMetrics();
+  const defs = getAchievementDefinitions().filter(d => d.type === type);
+  const value = type === 'streak' ? longestStreak : totalKm;
+  const next = defs.find(d => !S.achievements.unlocked[d.id]);
+  if (!next) return { value, next: null, pct: 100 };
+  const pct = Math.min(100, Math.round((value / next.threshold) * 100));
+  return { value, next, pct };
+}
+
+function formatAchievementDate(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+}
+
+let toastTimer = null;
+
+function maybeShowAchievementCelebration() {
+  ensureAchievements();
+  const queue = S.achievements.celebrationQueue || [];
+  if (!queue.length) return;
+  const id = queue[0];
+  const def = getAchievementDefinitions().find(d => d.id === id);
+  if (!def) { S.achievements.celebrationQueue.shift(); saveState(); return; }
+
+  // Show toast
+  document.getElementById('ach-toast-icon').textContent  = def.icon;
+  document.getElementById('ach-toast-title').textContent = def.title;
+  document.querySelector('.ach-toast-kicker').textContent = 'New milestone keepsake ✨';
+  document.getElementById('ach-toast-sub').textContent   = def.sub;
+  const toast = document.getElementById('ach-toast');
+  toast.classList.add('show');
+
+  S.achievements.lastCelebrated = id;
+  S.achievements.celebrationQueue = queue.slice(1);
+  saveState();
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => dismissToast(), 5000);
+}
+
+function dismissToast() {
+  document.getElementById('ach-toast').classList.remove('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  // If more in queue, show next after a beat
+  if ((S.achievements?.celebrationQueue || []).length) {
+    setTimeout(() => maybeShowAchievementCelebration(), 600);
+  }
+}
+
+function renderAchievements() {
+  const el = document.getElementById('ach-section');
+  if (!el) return;
+  ensureAchievements();
+  const defs = getAchievementDefinitions();
+  const { longestStreak, currentStreak, totalKm } = getAchievementMetrics();
+  const unlockedCount = Object.keys(S.achievements.unlocked).length;
+
+  const streakProg = getNextAchievementProgress('streak');
+  const kmProg     = getNextAchievementProgress('km');
+
+  const streakNextLabel = streakProg.next ? `Next: ${streakProg.next.threshold} days` : 'All streak badges earned ✨';
+  const kmNextLabel     = kmProg.next ? `Next: ${kmProg.next.threshold} km` : 'All km badges earned ✨';
+
+  const curStreakNote = currentStreak > 0 ? ` · ${currentStreak} now` : '';
+
+  el.innerHTML = `
+    <div class="ach-header">
+      <div class="ach-title">Keepsakes</div>
+      <div class="ach-count">${unlockedCount} of ${defs.length}</div>
+    </div>
+    <div class="ach-progress-row">
+      <div class="ach-progress-card">
+        <div class="ach-prog-label">🔥 Longest streak</div>
+        <div class="ach-prog-val">${longestStreak}<span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif"> days${curStreakNote}</span></div>
+        <div class="ach-prog-next">${streakNextLabel}</div>
+        <div class="ach-prog-bar"><div class="ach-prog-fill streak" style="width:${streakProg.pct}%"></div></div>
+      </div>
+      <div class="ach-progress-card">
+        <div class="ach-prog-label">👟 Total walked</div>
+        <div class="ach-prog-val">${totalKm}<span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif"> km</span></div>
+        <div class="ach-prog-next">${kmNextLabel}</div>
+        <div class="ach-prog-bar"><div class="ach-prog-fill km" style="width:${kmProg.pct}%"></div></div>
+      </div>
+    </div>
+    <div class="ach-grid">
+      ${defs.map(def => {
+        const unlockMeta = S.achievements.unlocked[def.id];
+        const isUnlocked = !!unlockMeta;
+        const unlockedClass = isUnlocked ? 'unlocked' : 'locked';
+        const tierClass = isUnlocked ? `tier-${def.tier}` : '';
+        const tierLabel = isUnlocked ? def.tier : '···';
+        const earnedLabel = isUnlocked ? `Collected ${formatAchievementDate(unlockMeta.unlockedAt)}` : '&nbsp;';
+        return `<div class="ach-badge ${unlockedClass} ${tierClass}" title="${isUnlocked ? `${def.sub} · ${earnedLabel.replace(/&nbsp;/g,'').trim()}` : 'Keep going…'}">
+          <span class="ach-badge-icon">${def.icon}</span>
+          <div class="ach-badge-title">${def.title}</div>
+          <div class="ach-badge-sub">${def.sub}</div>
+          <div class="ach-badge-date">${earnedLabel}</div>
+          <span class="ach-badge-tier">${tierLabel}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
 function loadState() {
   try {
     const v2 = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -848,7 +1221,13 @@ function loadState() {
         weeklyAdapt: v2.weeklyAdapt || {},
         dailyState: v2.dailyState || {},
         messageMemory: { ...deepClone(DEFAULT_STATE.messageMemory), ...(v2.messageMemory||{}) },
-        meta: { ...DEFAULT_STATE.meta, ...(v2.meta||{}) }
+        meta: { ...DEFAULT_STATE.meta, ...(v2.meta||{}) },
+        achievements: v2.achievements ? {
+          unlocked: v2.achievements.unlocked || {},
+          lastCelebrated: v2.achievements.lastCelebrated || null,
+          celebrationQueue: v2.achievements.celebrationQueue || []
+        } : { unlocked: {}, lastCelebrated: null, celebrationQueue: [] },
+        companion: { ...deepClone(DEFAULT_STATE.companion), ...(v2.companion || {}) }
       };
     }
   } catch(e) {}
@@ -1189,7 +1568,13 @@ function getPhase(date){
   if(dayNum < ovStart + ovLen) return 'o';
   return 'l';
 }
-const PHASE_LABELS = { m:'Period phase', f:'Follicular phase', o:'Ovulation phase', l:'Luteal phase', r:'Rest day' };
+const PHASE_LABELS = { m:'Period phase', f:'Follicular phase', o:'Ovulation phase', l:'Luteal phase' };
+function getCyclePhaseCode(date){ return getPhase(date); }
+function getCyclePhaseLabel(date){ return PHASE_LABELS[getCyclePhaseCode(date)] || 'Cycle phase'; }
+function getCyclePhaseDisplay(date){
+  if (!getProfile().cycleAware) return 'Standard mode';
+  return getCyclePhaseLabel(date).replace(/ phase$/i,'');
+}
 
 function getBlockTargets(w){
   const p = getProfile();
@@ -1399,8 +1784,7 @@ function renderTodayCard(weeks){
   }
   const rec = getRecommendedMins(todayEntry);
   const readinessText = readiness ? titleCase(readiness) : 'Not checked in';
-  const phase = todayEntry.isRest ? 'r' : getPhase(td);
-  const phaseText = getProfile().cycleAware ? PHASE_LABELS[phase].replace(/ phase$/i,'') : 'Standard mode';
+  const phaseText = getCyclePhaseDisplay(td);
   const trendAdj = getReadinessTrendModifier(td);
   const momentum = todayEntry.isRest ? 0 : getMomentumBump(todayEntry);
   titleEl.textContent = `Today’s plan`;
@@ -1519,10 +1903,39 @@ function renderSchedule(weeks) {
 
 function renderStats() {
   const { done, mins, km, sick } = computeStats();
+  const { longestStreak, currentStreak, totalKm } = getAchievementMetrics();
+  const unlockedCount = Object.keys(S.achievements?.unlocked || {}).length;
+
   document.getElementById('s-done').textContent = done;
   document.getElementById('s-mins').textContent = mins;
   document.getElementById('s-km').textContent   = km;
   document.getElementById('s-sick').textContent = sick;
+
+  document.getElementById('spot-streak').textContent = longestStreak;
+  document.getElementById('spot-km').textContent = totalKm;
+  document.getElementById('spot-mins').textContent = mins;
+  document.getElementById('spot-streak-note').textContent = currentStreak > 0 ? `${currentStreak} day streak right now` : 'Longest streak so far';
+  document.getElementById('spot-km-note').textContent = totalKm > 0 ? `${totalKm} km logged in total` : 'Total kilometers logged';
+  document.getElementById('spot-mins-note').textContent = done > 0 ? `${done} completed sessions so far` : 'Minutes invested';
+
+  document.getElementById('stats-hero-pill').innerHTML = `<strong>${unlockedCount}</strong> keepsakes collected`;
+
+  let heroTitle = 'Steady momentum.';
+  let heroCopy = 'Each logged walk stacks quietly. This page keeps the wins readable without yelling at her.';
+  if (longestStreak >= 30 || totalKm >= 100) {
+    heroTitle = 'She is properly building something now.';
+    heroCopy = 'This is past beginner luck. The consistency is visible, the distance is real, and the app finally has receipts.';
+  } else if (longestStreak >= 7 || totalKm >= 25) {
+    heroTitle = 'This is starting to look like a real rhythm.';
+    heroCopy = 'The numbers are still soft and pretty, but they are not accidental anymore. She has actual momentum.';
+  } else if (done > 0) {
+    heroTitle = 'A gentle start still counts.';
+    heroCopy = 'Early progress is supposed to look modest. The point is that it exists and keeps stacking instead of staying imaginary.';
+  }
+  document.getElementById('stats-hero-title').textContent = heroTitle;
+  document.getElementById('stats-hero-copy').textContent = heroCopy;
+
+  renderAchievements();
 }
 
 function renderProgress(weeks) {
@@ -1568,7 +1981,7 @@ function renderCycle() {
     <p><span class="badge ${badge}">${confidenceLabel}</span></p>
     <p style="margin-top:8px">Tracked period days: <strong>${info.trackedDays}</strong> · Estimated cycle: <strong>${info.cycleLength} days</strong> · Estimated period length: <strong>${info.periodLength} days</strong></p>
     <p style="margin-top:6px">${info.confidence === 'low'
-      ? 'Still learning. Predictions are soft and should be treated like helpful estimates, not medical truth.'
+      ? 'This is a best-effort early estimate. It should be treated like a helpful guess, not medical truth.'
       : 'This is now based on repeated logs, so the estimate is getting more grounded and less hand-wavy.'}</p>`;
 }
 
@@ -1588,10 +2001,10 @@ function renderCalendar(weeks) {
   const monthName = firstDay.toLocaleString('default', { month: 'long' });
 
   document.getElementById('cal-month').textContent = `${monthName} ${calYear}`;
-  const firstPhase = getPhase(firstDay);
+  const firstPhase = getCyclePhaseCode(firstDay);
   const info = getCycleInfo();
   document.getElementById('cal-msub').innerHTML = info.enabled
-    ? `Starts in ${PHASE_LABELS[firstPhase]} · <span class="badge ${info.confidence==='high'?'high':info.confidence==='med'?'med':'low'}">${info.confidence} confidence</span>`
+    ? `Starts in ${PHASE_LABELS[firstPhase]} · <span class="badge ${info.confidence==='high'?'high':info.confidence==='med'?'med':'low'}">${softConfidenceLabel(info.confidence)}</span>`
     : `Standard mode`;
 
   let mDone = 0, mMins = 0, mKm = 0, mSick = 0;
@@ -1693,7 +2106,10 @@ function openModal(key, day, phase) {
   const cb = document.getElementById('period-cb');
   cb.checked = !!(log?.isPeriod);
   document.getElementById('modal-date').textContent = `${DAYS[new Date(day.date).getDay()]}, ${MONTHS[new Date(day.date).getMonth()]} ${new Date(day.date).getDate()}`;
-  document.getElementById('modal-phase').textContent = day?.unscheduled ? `${PHASE_LABELS[phase] || 'Open log day'} · historical / manual entry` : (PHASE_LABELS[phase] || '');
+  const modalPhaseLabel = day?.unscheduled
+    ? `${getCyclePhaseLabel(new Date(day.date))} · historical / manual entry`
+    : getCyclePhaseLabel(new Date(day.date));
+  document.getElementById('modal-phase').textContent = modalPhaseLabel;
   document.getElementById('inp-mins').value = log?.actualMins || '';
   document.getElementById('inp-km').value   = log?.actualKm   || '';
   document.getElementById('mbtn-clear').style.display = (log?.status || log?.isPeriod) ? 'block' : 'none';
@@ -1735,6 +2151,7 @@ function saveLog() {
   } else {
     S.logs[modalKey] = { ...existing, isPeriod };
   }
+  evaluateAchievements();
   saveState();
   closeModal();
   renderAll();
@@ -1754,6 +2171,8 @@ function clearAll() {
   S = deepClone(DEFAULT_STATE);
   S.profile = profile;
   S.meta = meta;
+  S.achievements = { unlocked: {}, lastCelebrated: null, celebrationQueue: [] };
+  S.companion = deepClone(DEFAULT_STATE.companion);
   saveState();
   closeConfirm();
   weekManual = false;
@@ -1780,7 +2199,10 @@ S = loadState();
 saveState();
 if(!S.profile) openSetup(0);
 renderAll();
-setTimeout(() => { if(S.profile) maybeAskReadiness(false); }, 200);
+setTimeout(() => {
+  if(S.profile) maybeAskReadiness(false);
+  evaluateAchievements();
+}, 200);
 </script>
 
 </body>
